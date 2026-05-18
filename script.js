@@ -1,3 +1,49 @@
+// 替換成你剛剛複製的 Google 網址
+const API_URL = "https://script.google.com/macros/s/AKfycbz-Xsn1-43FoszRayoyrX0b0BeNeyKdKv6WowOvW0CCwnwIBbKTRDGOKHAbfvvmQUvG/exec";
+
+// 抓取 Google Sheet 資料並填入表格
+function fetchInventoryData() {
+    fetch(API_URL)
+        .then(response => response.json())
+        .then(result => {
+            if (result.status === "success") {
+                const tbody = document.getElementById('inventory-table-body');
+                tbody.innerHTML = ''; // 清除「載入中」文字
+
+                // 迴圈把每一筆資料畫成表格的橫列 (Row)
+                result.data.forEach(item => {
+                    // 因為你的試算表欄位名稱可能跟我的範例稍微不同，這裡先抓幾個常見的欄位
+                    // 如果欄位名稱是空的，會顯示 '-'
+                    let code = item['耗材編號'] || '-';
+                    let name = item['名稱'] || item['耗材名稱'] || '-';
+                    let spec = item['規格'] || '-';
+                    let stock = item['初始庫存'] || item['庫存數量'] || 0;
+                    let safeStock = item['安全庫存'] || 0;
+
+                    let rowHtml = `
+                        <tr style="border-bottom: 1px solid #1e293b; color: #e2e8f0;">
+                            <td style="padding: 12px;">${code}</td>
+                            <td style="padding: 12px;">${name}</td>
+                            <td style="padding: 12px;">${spec}</td>
+                            <td style="padding: 12px;">${stock}</td>
+                            <td style="padding: 12px;">${safeStock}</td>
+                            <td style="padding: 12px;">
+                                <button style="background: transparent; border: 1px solid #475569; color: #cbd5e1; padding: 4px 12px; border-radius: 4px; cursor: pointer;">查看</button>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += rowHtml;
+                });
+            }
+        })
+        .catch(error => {
+            console.error("讀取資料失敗:", error);
+            document.getElementById('inventory-table-body').innerHTML = '<tr><td colspan="6" style="text-align: center; color: #ef4444;">資料讀取失敗，請檢查網址或權限設定</td></tr>';
+        });
+}
+
+// 執行抓取資料
+fetchInventoryData();
 // 初始化環形圖
 var donutChart = echarts.init(document.getElementById('donut-chart'));
 var donutOption = {
