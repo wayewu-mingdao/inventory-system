@@ -23,3 +23,49 @@ var donutOption = {
     ]
 };
 donutChart.setOption(donutOption);
+// 初始化折線圖 (近7日出入庫統計)
+var lineChart = echarts.init(document.getElementById('line-chart'));
+var lineOption = {
+    tooltip: { trigger: 'axis' },
+    legend: { 
+        data: ['入庫數量', '出庫數量'], 
+        textStyle: { color: '#94a3b8' }, 
+        left: 'left',
+        icon: 'roundRect'
+    },
+    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+    xAxis: { 
+        type: 'category', 
+        boundaryGap: false, 
+        data: ['05/05', '05/06', '05/07', '05/08', '05/09', '05/10', '05/11'],
+        axisLabel: { color: '#94a3b8' }
+    },
+    yAxis: { 
+        type: 'value', 
+        splitLine: { lineStyle: { color: '#1e293b' } },
+        axisLabel: { color: '#94a3b8', formatter: function(value) { return value >= 1000 ? (value/1000) + 'K' : value; } }
+    },
+    series: [
+        { 
+            name: '入庫數量', 
+            type: 'line', 
+            data: [4000, 6000, 5000, 8000, 5000, 7000, 4500], 
+            itemStyle: { color: '#3b82f6' }, 
+            smooth: true 
+        },
+        { 
+            name: '出庫數量', 
+            type: 'line', 
+            data: [1500, 2000, 3800, 4500, 2000, 3800, 2000], 
+            itemStyle: { color: '#94a3b8' }, 
+            smooth: true 
+        }
+    ]
+};
+lineChart.setOption(lineOption);
+
+// 讓圖表跟著視窗縮放
+window.addEventListener('resize', function() {
+    donutChart.resize();
+    lineChart.resize();
+});
