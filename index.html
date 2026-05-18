@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>耗材盤點系統</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="logo">FutureShock 113P</div>
+        <nav>
+            <ul>
+                <li class="active"><a href="#">總覽</a></li>
+                <li><a href="#">耗材管理</a></li>
+                <li><a href="#">入庫管理</a></li>
+                <li><a href="#">出庫管理</a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="top-nav">
+            <h2>耗材盤點系統</h2>
+            <div class="user-profile">管理員</div>
+        </header>
+
+        <section class="summary-cards">
+            <div class="card">
+                <h3>耗材總數</h3>
+                <p class="number">1,248</p>
+                <span class="trend up">▲ 6.2%</span>
+            </div>
+            <div class="card">
+                <h3>庫存總數量</h3>
+                <p class="number">24,568</p>
+                <span class="trend up">▲ 8.1%</span>
+            </div>
+            </section>
+
+        <section class="charts-section">
+            <div class="chart-container">
+                <h3>庫存狀態分布</h3>
+                <div id="donut-chart" style="width: 100%; height: 300px;"></div>
+            </div>
+            <div class="chart-container">
+                <h3>近7日出入庫統計</h3>
+                <div id="line-chart" style="width: 100%; height: 300px;"></div>
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+/* 基本重置與深色背景設定 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    display: flex;
+    height: 100vh;
+    background-color: #0b1121; /* 圖片中的深藍背景色 */
+    color: #e2e8f0;
+}
+
+/* 左側邊欄 */
+.sidebar {
+    width: 260px;
+    background-color: #0f172a;
+    border-right: 1px solid #1e293b;
+    padding: 20px 0;
+}
+
+.logo {
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #1e293b;
+}
+
+.sidebar nav ul {
+    list-style: none;
+    margin-top: 20px;
+}
+
+.sidebar nav ul li a {
+    display: block;
+    padding: 15px 25px;
+    color: #94a3b8;
+    text-decoration: none;
+    transition: 0.3s;
+}
+
+.sidebar nav ul li.active a, .sidebar nav ul li a:hover {
+    background-color: #1e40af; /* 選中的藍色 */
+    color: white;
+}
+
+/* 主內容區 */
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.top-nav {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 30px;
+}
+
+/* 數據卡片 */
+.summary-cards {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.card {
+    flex: 1;
+    background-color: #111827;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #1e293b;
+}
+
+.card .number {
+    font-size: 28px;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+.trend.up { color: #10b981; }
+.trend.down { color: #ef4444; }
+
+/* 圖表區 */
+.charts-section {
+    display: flex;
+    gap: 20px;
+}
+
+.chart-container {
+    flex: 1;
+    background-color: #111827;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #1e293b;
+}
