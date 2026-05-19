@@ -88,7 +88,7 @@ function initDashboard() {
                 });
 
                 // 更新頂部卡片的真實數字
-                updateDashboardSummary(totalItems, totalStockAmount, lowStockCount, outOfStockCount);
+                updateDashboardSummary(totalItems, lowStockCount, outOfStockCount);
                 // 重新繪製圓餅圖
                 renderDonutChart(statusCounts);
                 // 重新繪製折線圖
@@ -104,14 +104,14 @@ function initDashboard() {
 }
 
 // 動態修改網頁上方卡片數字
-function updateDashboardSummary(totalItems, totalStock, lowStock, outOfStock) {
-    const cardValues = document.querySelectorAll('.summary-cards .card .number');
-    if (cardValues && cardValues.length >= 4) {
-        cardValues[0].innerHTML = `${totalItems} <span style="font-size: 14px; font-weight: normal; color: #94a3b8;">項</span>`;
-        cardValues[1].innerHTML = `${totalStock} <span style="font-size: 14px; font-weight: normal; color: #94a3b8;">個</span>`;
-        cardValues[2].innerHTML = `${lowStock} <span style="font-size: 14px; font-weight: normal; color: #94a3b8;">項</span>`;
-        cardValues[3].innerHTML = `${outOfStock} <span style="font-size: 14px; font-weight: normal; color: #94a3b8;">項</span>`;
-    }
+function updateDashboardSummary(totalItems, lowStock, outOfStock) {
+   const cardValues = document.querySelectorAll('.summary-cards .card .number');
+
+if (cardValues && cardValues.length >= 3) {
+    cardValues[0].innerHTML = `${totalItems} <span style="font-size: 14px; font-weight: normal; color: #94a3b8;">項</span>`;
+    cardValues[1].innerHTML = `${lowStock} <span style="font-size: 14px; font-weight: normal; color: #94a3b8;">項</span>`;
+    cardValues[2].innerHTML = `${outOfStock} <span style="font-size: 14px; font-weight: normal; color: #94a3b8;">項</span>`;
+}
 }
 
 function renderDonutChart(counts) {
