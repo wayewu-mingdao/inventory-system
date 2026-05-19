@@ -3,8 +3,10 @@ const API_URL = "https://script.google.com/macros/s/AKfycbyohRUonPSdTW8c8yG9_HJE
 
 // 初始化 ECharts 圖表
 const hasEcharts = typeof echarts !== 'undefined';
-var allCategoryChart = hasEcharts ? echarts.init(document.getElementById('all-category-chart')) : null;
-var shortageCategoryChart = hasEcharts ? echarts.init(document.getElementById('shortage-category-chart')) : null;
+const allCategoryChartElement = document.getElementById('all-category-chart');
+const shortageCategoryChartElement = document.getElementById('shortage-category-chart');
+var allCategoryChart = hasEcharts && allCategoryChartElement ? echarts.init(allCategoryChartElement) : null;
+var shortageCategoryChart = hasEcharts && shortageCategoryChartElement ? echarts.init(shortageCategoryChartElement) : null;
 let inventoryData = [];
 
 if (!hasEcharts) {
@@ -150,6 +152,8 @@ function shouldShowInInventoryTable(status) {
 function initNavigation() {
     document.querySelectorAll('.sidebar a[data-page]').forEach(link => {
         link.addEventListener('click', event => {
+            if (!document.getElementById(`${link.dataset.page}-view`)) return;
+
             event.preventDefault();
             switchPage(link.dataset.page);
         });
