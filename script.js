@@ -19,7 +19,8 @@ function initDashboard() {
         .then(result => {
             console.log("從 Google 抓到的真實資料:", result);
             
-            if (result.status === "success" && result.data) {
+            const data = Array.isArray(result) ? result : result.data;
+            if (data && Array.isArray(data)) {
                 if (tbody) tbody.innerHTML = ''; 
 
                 let totalItems = 0;       
@@ -28,7 +29,7 @@ function initDashboard() {
                 let outOfStockCount = 0;   
                 let statusCounts = { "足夠": 0, "庫存偏低": 0, "需補貨": 0, "缺貨": 0 };
 
-                result.data.forEach(item => {
+                data.forEach(item => {
                     // 排除空白列
                     if (!item['耗材編號'] || item['耗材編號'].toString().trim() === '') return;
 
