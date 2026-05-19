@@ -3,7 +3,6 @@ const API_URL = "https://script.google.com/macros/s/AKfycbyohRUonPSdTW8c8yG9_HJE
 
 // 初始化 ECharts 圖表
 var donutChart = echarts.init(document.getElementById('donut-chart'));
-var lineChart = echarts.init(document.getElementById('line-chart'));
 
 function initDashboard() {
     const tbody = document.getElementById('inventory-table-body');
@@ -91,7 +90,7 @@ function initDashboard() {
                 updateDashboardSummary(totalItems, lowStockCount, outOfStockCount);
                 // 重新繪製圓餅圖
                 renderDonutChart(statusCounts);
-                // 重新繪製折線圖
+                // 顯示各館室缺貨物品
                 renderRoomShortages(data);
             }
         })
