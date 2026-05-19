@@ -1,5 +1,5 @@
 // 1. 保留你目前設定的最新 Google 部署 URL
-const API_URL = "https://script.google.com/macros/s/AKfycbyGgD_u3mGuyCUDwMsa_ik8IAcczsreJ63-zAyyc6zWCGdQF-p-Jaf5iK3WeXZR9yLj/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyohRUonPSdTW8c8yG9_HJEv-G8s_Nz7GXSOCoPV13N_f4Jqka7m0AhHRsTqZVUxotQ/exec";
 
 // 初始化 ECharts 圖表
 var donutChart = echarts.init(document.getElementById('donut-chart'));
