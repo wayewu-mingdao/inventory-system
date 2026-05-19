@@ -71,7 +71,7 @@ function initDashboard() {
                         statusBg = 'rgba(245, 158, 11, 0.2)';
                     }
 
-                    if (tbody) {
+                    if (tbody && shouldShowInInventoryTable(status)) {
                         const row = document.createElement('tr');
                         row.className = 'inventory-row';
 
@@ -94,6 +94,10 @@ function initDashboard() {
                         tbody.appendChild(row);
                     }
                 });
+
+                if (tbody && tbody.children.length === 0) {
+                    showTableMessage(tbody, '目前沒有缺貨或需補貨項目');
+                }
 
                 // 更新頂部卡片的真實數字
                 updateDashboardSummary(totalItems, lowStockCount, outOfStockCount);
@@ -136,6 +140,10 @@ function showChartFallback(message) {
         chart.classList.add('chart-fallback');
         chart.textContent = message;
     });
+}
+
+function shouldShowInInventoryTable(status) {
+    return status === '缺貨' || status === '需補貨';
 }
 
 // 動態修改網頁上方卡片數字
