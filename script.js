@@ -92,7 +92,7 @@ function initDashboard() {
                 // 重新繪製圓餅圖
                 renderDonutChart(statusCounts);
                 // 重新繪製折線圖
-                renderLineChart();
+                renderRoomShortages(data);
             }
         })
         .catch(error => {
@@ -135,22 +135,75 @@ function renderDonutChart(counts) {
     donutChart.setOption(donutOption);
 }
 
-function renderLineChart() {
-    var lineOption = {
-        tooltip: { trigger: 'axis' },
-        legend: { data: ['入庫數量', '出庫數量'], textStyle: { color: '#94a3b8' }, left: 'left' },
-        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-        xAxis: { type: 'category', boundaryGap: false, data: ['05/13', '05/14', '05/15', '05/16', '05/17', '05/18', '05/19'], axisLabel: { color: '#94a3b8' } },
-        yAxis: { type: 'value', splitLine: { lineStyle: { color: '#1e293b' } }, axisLabel: { color: '#94a3b8' } },
-        series: [
-            { name: '入庫數量', type: 'line', data: [0, 0, 0, 0, 0, 0, 0], itemStyle: { color: '#3b82f6' }, smooth: true },
-            { name: '出庫數量', type: 'line', data: [0, 0, 0, 0, 0, 0, 0], itemStyle: { color: '#94a3b8' }, smooth: true }
-        ]
-    };
-    lineChart.setOption(lineOption);
+function renderRoomShortages(data) {
+    const container = document.getElementById('room-shortage-list');
+
+    if (!container) return;
+
+    const grouped = {};
+
+    data.forEach(item => {
+        const status = (item['庫存狀態'] || '').trim();
+
+        if (status === '缺貨' || status === '需補貨') {
+            const room = item['館室'] || '未分類';
+
+            if (!grouped[room]) {
+                grouped[room] = [];
+            }
+
+            grouped[room].push(item['耗材名稱']);
+        }
+    });
+
+    let html = '';
+
+    Object.keys(grouped).forEach(room => {
+        html += `
+            <div style="margin-bottom: 20px;">
+                <h4 style="color:#3b82f6; margin-bottom:10px;">
+                    ${room}
+                </h4>
+
+                <div style="
+                    display:flex;
+                    flex-wrap:wrap;
+                    gap:8px;
+                ">
+                    ${grouped[room].map(name => `
+                        <span style="
+                            background:#1e293b;
+                            color:#f59e0b;
+                            padding:6px 10px;
+                            border-radius:6px;
+                            font-size:13px;
+                        ">
+                            ${name}
+                        </span>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    });
+
+    if (html === '') {
+        html = `
+            <div style="
+                color:#10b981;
+                padding:20px;
+                text-align:center;
+            ">
+                目前沒有缺貨或需補貨項目
+            </div>
+        `;
+    }
+
+    container.innerHTML = html;
 }
 
-window.addEventListener('resize', function() { donutChart.resize(); lineChart.resize(); });
+window.addEventListener('resize', function() {
+    donutChart.resize();
+});
 
 // 啟動主程式
 initDashboard();
