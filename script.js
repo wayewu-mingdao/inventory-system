@@ -1,5 +1,5 @@
 // 1. 請在這裡貼上你剛剛「管理部署作業」重新部署拿到的全新網址 🚨
-const API_URL = "https://script.google.com/macros/s/AKfycbz-Xsn1-43FoszRayoyrX0b0BeNeyKdKv6WowOvW0CCwnwIBbKTRDGOKHAbfvvmQUvG/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyGgD_u3mGuyCUDwMsa_ik8IAcczsreJ63-zAyyc6zWCGdQF-p-Jaf5iK3WeXZR9yLj/exec";
 
 // 初始化 ECharts 圖表
 var donutChart = echarts.init(document.getElementById('donut-chart'));
