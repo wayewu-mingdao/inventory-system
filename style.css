@@ -8,7 +8,7 @@
 
 body {
     display: flex;
-    height: 100vh;
+    min-height: 100vh;
     background-color: #0b1121; /* 圖片中的深藍背景色 */
     color: #e2e8f0;
 }
@@ -98,4 +98,151 @@ body {
     padding: 20px;
     border-radius: 8px;
     border: 1px solid #1e293b;
+}
+
+.chart-fallback {
+    align-items: center;
+    color: #f59e0b;
+    display: flex;
+    justify-content: center;
+    min-height: 300px;
+    text-align: center;
+}
+
+.table-section {
+    overflow-x: auto;
+}
+
+tbody td {
+    padding: 12px;
+}
+
+.inventory-row {
+    border-bottom: 1px solid #1e293b;
+    color: #e2e8f0;
+    text-align: left;
+}
+
+.item-name,
+.stock-ok,
+.stock-warning {
+    font-weight: bold;
+}
+
+.muted {
+    color: #94a3b8;
+}
+
+.stock-warning {
+    color: #ef4444;
+}
+
+.status-badge {
+    border-radius: 4px;
+    display: inline-block;
+    font-size: 12px;
+    font-weight: bold;
+    padding: 4px 8px;
+}
+
+.table-message {
+    color: #94a3b8;
+    padding: 20px;
+    text-align: center;
+}
+
+.table-message.error {
+    color: #ef4444;
+}
+
+.room-shortage-group {
+    margin-bottom: 20px;
+}
+
+.room-shortage-group h4 {
+    color: #3b82f6;
+    margin-bottom: 10px;
+}
+
+.shortage-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.shortage-tags span {
+    background: #1e293b;
+    border-radius: 6px;
+    color: #f59e0b;
+    font-size: 13px;
+    padding: 6px 10px;
+}
+
+.empty-state {
+    color: #10b981;
+    padding: 20px;
+    text-align: center;
+}
+
+@media (max-width: 900px) {
+    body {
+        display: block;
+    }
+
+    .sidebar {
+        border-bottom: 1px solid #1e293b;
+        border-right: 0;
+        width: 100%;
+    }
+
+    .sidebar nav ul {
+        display: flex;
+        gap: 8px;
+        margin-top: 16px;
+        overflow-x: auto;
+        padding: 0 16px 4px;
+    }
+
+    .sidebar nav ul li {
+        flex: 0 0 auto;
+    }
+
+    .sidebar nav ul li a {
+        border-radius: 6px;
+        padding: 10px 14px;
+        white-space: nowrap;
+    }
+
+    .main-content {
+        padding: 16px;
+    }
+
+    .summary-cards,
+    .charts-section {
+        flex-direction: column;
+    }
+
+    .top-nav {
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+}
+
+@media (max-width: 560px) {
+    .logo {
+        font-size: 20px;
+    }
+
+    .top-nav {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .card {
+        padding: 16px;
+    }
+
+    .chart-container {
+        padding: 16px;
+    }
 }

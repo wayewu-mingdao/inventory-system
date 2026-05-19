@@ -2,13 +2,18 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbyohRUonPSdTW8c8yG9_HJEv-G8s_Nz7GXSOCoPV13N_f4Jqka7m0AhHRsTqZVUxotQ/exec";
 
 // 初始化 ECharts 圖表
-var allCategoryChart = echarts.init(document.getElementById('all-category-chart'));
-var shortageCategoryChart = echarts.init(document.getElementById('shortage-category-chart'));
+const hasEcharts = typeof echarts !== 'undefined';
+var allCategoryChart = hasEcharts ? echarts.init(document.getElementById('all-category-chart')) : null;
+var shortageCategoryChart = hasEcharts ? echarts.init(document.getElementById('shortage-category-chart')) : null;
+
+if (!hasEcharts) {
+    showChartFallback('圖表元件載入失敗，請確認網路連線後重新整理頁面。');
+}
 
 function initDashboard() {
     const tbody = document.getElementById('inventory-table-body');
     if (tbody) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px; color: #94a3b8;">正在即時同步雲端資料庫...</td></tr>';
+        showTableMessage(tbody, '正在即時同步雲端資料庫...');
     }
 
     fetch(API_URL)
@@ -21,11 +26,11 @@ function initDashboard() {
             
             const data = Array.isArray(result) ? result : result.data;
             if (data && Array.isArray(data)) {
-                if (tbody) tbody.innerHTML = ''; 
+                if (tbody) tbody.textContent = '';
 
-                let totalItems = 0;       
-                let totalStockAmount = 0;  
-                let lowStockCount = 0;     
+                let totalItems = 0;
+                let totalStockAmount = 0;
+                let lowStockCount = 0;
                 let outOfStockCount = 0;   
                 let statusCounts = { "足夠": 0, "庫存偏低": 0, "需補貨": 0, "缺貨": 0 };
 
@@ -67,23 +72,26 @@ function initDashboard() {
                     }
 
                     if (tbody) {
-                        let rowHtml = `
-                            <tr style="border-bottom: 1px solid #1e293b; color: #e2e8f0; text-align: left;">
-                                <td style="padding: 12px;">${code}</td>
-                                <td style="padding: 12px; font-weight: bold;">${name}</td>
-                                <td style="padding: 12px; color: #94a3b8;">${spec}</td>
-                                <td style="padding: 12px; color: #94a3b8;">${room}</td>
-                                <td style="padding: 12px; color: #94a3b8;">${location}</td>
-                                <td style="padding: 12px; color: ${currentStock <= safeStock ? '#ef4444' : '#e2e8f0'}; font-weight: bold;">${currentStock}</td>
-                                <td style="padding: 12px; color: #94a3b8;">${safeStock}</td>
-                                <td style="padding: 12px;">
-                                    <span style="background-color: ${statusBg}; color: ${statusColor}; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">
-                                        ${status}
-                                    </span>
-                                </td>
-                            </tr>
-                        `;
-                        tbody.innerHTML += rowHtml;
+                        const row = document.createElement('tr');
+                        row.className = 'inventory-row';
+
+                        appendCell(row, code);
+                        appendCell(row, name, 'item-name');
+                        appendCell(row, spec, 'muted');
+                        appendCell(row, room, 'muted');
+                        appendCell(row, location, 'muted');
+                        appendCell(row, currentStock, currentStock <= safeStock ? 'stock-warning' : 'stock-ok');
+                        appendCell(row, safeStock, 'muted');
+
+                        const statusCell = appendCell(row, '');
+                        const badge = document.createElement('span');
+                        badge.className = 'status-badge';
+                        badge.textContent = status;
+                        badge.style.backgroundColor = statusBg;
+                        badge.style.color = statusColor;
+                        statusCell.appendChild(badge);
+
+                        tbody.appendChild(row);
                     }
                 });
 
@@ -99,27 +107,55 @@ function initDashboard() {
         .catch(error => {
             console.error("讀取資料失敗:", error);
             if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #ef4444; padding: 20px;">資料同步失敗，請確認 API 網址是否正確</td></tr>';
+                showTableMessage(tbody, '資料同步失敗，請確認 API 網址是否正確', 'error');
             }
         });
 }
 
+function appendCell(row, value, className) {
+    const cell = document.createElement('td');
+    cell.textContent = value;
+    if (className) cell.className = className;
+    row.appendChild(cell);
+    return cell;
+}
+
+function showTableMessage(tbody, message, type) {
+    tbody.textContent = '';
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.colSpan = 8;
+    cell.className = type === 'error' ? 'table-message error' : 'table-message';
+    cell.textContent = message;
+    row.appendChild(cell);
+    tbody.appendChild(row);
+}
+
+function showChartFallback(message) {
+    document.querySelectorAll('#all-category-chart, #shortage-category-chart').forEach(chart => {
+        chart.classList.add('chart-fallback');
+        chart.textContent = message;
+    });
+}
+
 // 動態修改網頁上方卡片數字
 function updateDashboardSummary(totalItems, lowStock, outOfStock) {
-   const cardValues = document.querySelectorAll('.summary-cards .card .number');
+    const cardValues = document.querySelectorAll('.summary-cards .card .number');
 
-if (cardValues && cardValues.length >= 3) {
-    cardValues[0].innerHTML = `${totalItems} <span style="font-size: 14px; font-weight: normal; color: #94a3b8;">項</span>`;
-    cardValues[1].innerHTML = `${lowStock} <span style="font-size: 14px; font-weight: normal; color: #94a3b8;">項</span>`;
-    cardValues[2].innerHTML = `${outOfStock} <span style="font-size: 14px; font-weight: normal; color: #94a3b8;">項</span>`;
-}
+    if (cardValues && cardValues.length >= 3) {
+        cardValues[0].innerHTML = `${totalItems} <span style="font-size: 14px; font-weight: normal; color: #94a3b8;">項</span>`;
+        cardValues[1].innerHTML = `${lowStock} <span style="font-size: 14px; font-weight: normal; color: #94a3b8;">項</span>`;
+        cardValues[2].innerHTML = `${outOfStock} <span style="font-size: 14px; font-weight: normal; color: #94a3b8;">項</span>`;
+    }
 }
 
 function renderAllCategoryChart(data) {
+    if (!allCategoryChart) return;
+
     const categoryCounts = {};
 
     data.forEach(item => {
-        const category = (item['類別'] || '未分類').trim();
+        const category = String(item['類別'] || '未分類').trim();
 
         if (!categoryCounts[category]) {
             categoryCounts[category] = 0;
@@ -157,10 +193,12 @@ function renderAllCategoryChart(data) {
 }
 
 function renderShortageCategoryChart(data) {
+    if (!shortageCategoryChart) return;
+
     const categoryCounts = {};
 
     data.forEach(item => {
-        const category = (item['類別'] || '未分類').trim();
+        const category = String(item['類別'] || '未分類').trim();
         const status = (item['庫存狀態'] || '').trim();
 
         if (
@@ -225,54 +263,40 @@ function renderRoomShortages(data) {
         }
     });
 
-    let html = '';
+    container.textContent = '';
 
     Object.keys(grouped).forEach(room => {
-        html += `
-            <div style="margin-bottom: 20px;">
-                <h4 style="color:#3b82f6; margin-bottom:10px;">
-                    ${room}
-                </h4>
+        const group = document.createElement('div');
+        group.className = 'room-shortage-group';
 
-                <div style="
-                    display:flex;
-                    flex-wrap:wrap;
-                    gap:8px;
-                ">
-                    ${grouped[room].map(name => `
-                        <span style="
-                            background:#1e293b;
-                            color:#f59e0b;
-                            padding:6px 10px;
-                            border-radius:6px;
-                            font-size:13px;
-                        ">
-                            ${name}
-                        </span>
-                    `).join('')}
-                </div>
-            </div>
-        `;
+        const title = document.createElement('h4');
+        title.textContent = room;
+        group.appendChild(title);
+
+        const tags = document.createElement('div');
+        tags.className = 'shortage-tags';
+
+        grouped[room].forEach(name => {
+            const tag = document.createElement('span');
+            tag.textContent = name || '-';
+            tags.appendChild(tag);
+        });
+
+        group.appendChild(tags);
+        container.appendChild(group);
     });
 
-    if (html === '') {
-        html = `
-            <div style="
-                color:#10b981;
-                padding:20px;
-                text-align:center;
-            ">
-                目前沒有缺貨或需補貨項目
-            </div>
-        `;
+    if (Object.keys(grouped).length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state';
+        empty.textContent = '目前沒有缺貨或需補貨項目';
+        container.appendChild(empty);
     }
-
-    container.innerHTML = html;
 }
 
 window.addEventListener('resize', function() {
-    allCategoryChart.resize();
-    shortageCategoryChart.resize();
+    if (allCategoryChart) allCategoryChart.resize();
+    if (shortageCategoryChart) shortageCategoryChart.resize();
 });
 
 // 啟動主程式
