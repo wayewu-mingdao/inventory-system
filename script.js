@@ -1,4 +1,4 @@
-// 1. 請在這裡貼上你剛剛「管理部署作業」重新部署拿到的全新網址 🚨
+// 1. 保留你目前設定的最新 Google 部署 URL
 const API_URL = "https://script.google.com/macros/s/AKfycbyGgD_u3mGuyCUDwMsa_ik8IAcczsreJ63-zAyyc6zWCGdQF-p-Jaf5iK3WeXZR9yLj/exec";
 
 // 初始化 ECharts 圖表
@@ -12,9 +12,12 @@ function initDashboard() {
     }
 
     fetch(API_URL)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) throw new Error("網路連線回應異常");
+            return response.json();
+        })
         .then(result => {
-            console.log("從 Google 抓到的真實資料:", result); // 開發者工具檢查用
+            console.log("從 Google 抓到的真實資料:", result);
             
             if (result.status === "success" && result.data) {
                 if (tbody) tbody.innerHTML = ''; 
@@ -26,6 +29,7 @@ function initDashboard() {
                 let statusCounts = { "足夠": 0, "庫存偏低": 0, "需補貨": 0, "缺貨": 0 };
 
                 result.data.forEach(item => {
+                    // 排除空白列
                     if (!item['耗材編號'] || item['耗材編號'].toString().trim() === '') return;
 
                     let code = item['耗材編號'] || '-';
@@ -50,6 +54,7 @@ function initDashboard() {
                         statusCounts['足夠']++;
                     }
 
+                    // 判斷狀態標籤顏色
                     let statusColor = '#3b82f6'; 
                     let statusBg = 'rgba(59, 130, 246, 0.2)';
                     if (status === '缺貨') {
@@ -81,39 +86,31 @@ function initDashboard() {
                     }
                 });
 
-                // 強制暴力更新網頁上所有包含死資料數字的區塊
-                updateAllDashboardNumbers(totalItems, totalStockAmount, lowStockCount, outOfStockCount);
+                // 更新頂部卡片的真實數字
+                updateDashboardSummary(totalItems, totalStockAmount, lowStockCount, outOfStockCount);
+                // 重新繪製圓餅圖
                 renderDonutChart(statusCounts);
+                // 重新繪製折線圖
                 renderLineChart();
             }
         })
         .catch(error => {
             console.error("讀取資料失敗:", error);
             if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #ef4444; padding: 20px;">資料同步失敗，請確認 API 網址是否為最新部署版本</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #ef4444; padding: 20px;">資料同步失敗，請確認 API 網址是否正確</td></tr>';
             }
         });
 }
 
-// 萬能數字替換函數：管他 class 是什麼，直接抓畫面上的關鍵字來改
-function updateAllDashboardNumbers(totalItems, totalStock, lowStock, outOfStock) {
-    const allDivs = document.querySelectorAll('div, h2, p, span');
-    allDivs.forEach(el => {
-        if (el.children.length === 0 || (el.children.length === 1 && el.children[0].tagName === 'SPAN')) {
-            if (el.innerText.includes('1,248')) {
-                el.innerHTML = `${totalItems} <span style="font-size: 14px; color: #94a3b8; font-weight: normal;">項</span>`;
-            }
-            if (el.innerText.includes('24,568')) {
-                el.innerHTML = `${totalStock} <span style="font-size: 14px; color: #94a3b8; font-weight: normal;">個</span>`;
-            }
-            if (el.innerText === '23' || el.innerText === '23 項') {
-                el.innerHTML = `${lowStock} <span style="font-size: 14px; color: #94a3b8; font-weight: normal;">項</span>`;
-            }
-            if (el.innerText === '8' || el.innerText === '8 項') {
-                el.innerHTML = `${outOfStock} <span style="font-size: 14px; color: #94a3b8; font-weight: normal;">項</span>`;
-            }
-        }
-    });
+// 動態修改網頁上方卡片數字
+function updateDashboardSummary(totalItems, totalStock, lowStock, outOfStock) {
+    const cardValues = document.querySelectorAll('.summary-cards .card .number');
+    if (cardValues && cardValues.length >= 4) {
+        cardValues[0].innerHTML = `${totalItems} <span style="font-size: 14px; font-weight: normal; color: #94a3b8;">項</span>`;
+        cardValues[1].innerHTML = `${totalStock} <span style="font-size: 14px; font-weight: normal; color: #94a3b8;">個</span>`;
+        cardValues[2].innerHTML = `${lowStock} <span style="font-size: 14px; font-weight: normal; color: #94a3b8;">項</span>`;
+        cardValues[3].innerHTML = `${outOfStock} <span style="font-size: 14px; font-weight: normal; color: #94a3b8;">項</span>`;
+    }
 }
 
 function renderDonutChart(counts) {
@@ -153,4 +150,6 @@ function renderLineChart() {
 }
 
 window.addEventListener('resize', function() { donutChart.resize(); lineChart.resize(); });
+
+// 啟動主程式
 initDashboard();
