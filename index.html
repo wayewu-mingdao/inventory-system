@@ -12,8 +12,8 @@
         <div class="logo">FutureShock 113P</div>
         <nav>
             <ul>
-                <li class="active"><a href="#">總覽</a></li>
-                <li><a href="#">耗材管理</a></li>
+                <li class="active"><a href="#" data-page="dashboard">總覽</a></li>
+                <li><a href="#" data-page="materials">耗材管理</a></li>
                 <li><a href="#">入庫管理</a></li>
                 <li><a href="#">出庫管理</a></li>
                 <li><a href="#">盤點紀錄</a></li>
@@ -23,10 +23,11 @@
 
     <main class="main-content">
         <header class="top-nav">
-            <h2>耗材盤點系統</h2>
+            <h2 id="page-title">耗材盤點系統</h2>
             <div class="user-profile">管理員</div>
         </header>
 
+        <section id="dashboard-view" class="view-section active-view">
        <section class="summary-cards">
             <div class="card">
                 <h3 style="color: #94a3b8; font-size: 14px; margin-bottom: 10px;">耗材總數</h3>
@@ -120,6 +121,55 @@
                     </tr>
                 </tbody>
             </table>
+        </section>
+        </section>
+
+        <section id="materials-view" class="view-section">
+            <section class="management-panel">
+                <div class="section-header">
+                    <div>
+                        <h3>耗材管理</h3>
+                        <p id="materials-count">正在同步耗材資料...</p>
+                    </div>
+                </div>
+
+                <div class="management-toolbar">
+                    <input id="materials-search" type="search" placeholder="搜尋編號、名稱、規格、館室或位置">
+                    <select id="materials-status-filter" aria-label="依庫存狀態篩選">
+                        <option value="all">全部狀態</option>
+                        <option value="缺貨">缺貨</option>
+                        <option value="需補貨">需補貨</option>
+                        <option value="庫存偏低">庫存偏低</option>
+                        <option value="足夠">足夠</option>
+                    </select>
+                    <select id="materials-room-filter" aria-label="依館室篩選">
+                        <option value="all">全部館室</option>
+                    </select>
+                </div>
+
+                <div class="materials-table-wrap">
+                    <table class="materials-table">
+                        <thead>
+                            <tr>
+                                <th>耗材編號</th>
+                                <th>耗材名稱</th>
+                                <th>類別</th>
+                                <th>規格/型號</th>
+                                <th>館室</th>
+                                <th>存放位置</th>
+                                <th>目前庫存</th>
+                                <th>安全庫存</th>
+                                <th>狀態</th>
+                            </tr>
+                        </thead>
+                        <tbody id="materials-table-body">
+                            <tr>
+                                <td colspan="9" class="table-message">資料載入中，請稍候...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </section>
     </main>
 

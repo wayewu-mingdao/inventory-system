@@ -5,6 +5,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbyohRUonPSdTW8c8yG9_HJE
 const hasEcharts = typeof echarts !== 'undefined';
 var allCategoryChart = hasEcharts ? echarts.init(document.getElementById('all-category-chart')) : null;
 var shortageCategoryChart = hasEcharts ? echarts.init(document.getElementById('shortage-category-chart')) : null;
+let inventoryData = [];
 
 if (!hasEcharts) {
     showChartFallback('圖表元件載入失敗，請確認網路連線後重新整理頁面。');
@@ -26,6 +27,8 @@ function initDashboard() {
             
             const data = Array.isArray(result) ? result : result.data;
             if (data && Array.isArray(data)) {
+                const validData = data.filter(item => item['耗材編號'] && item['耗材編號'].toString().trim() !== '');
+                inventoryData = validData;
                 if (tbody) tbody.textContent = '';
 
                 let totalItems = 0;
@@ -34,10 +37,7 @@ function initDashboard() {
                 let outOfStockCount = 0;   
                 let statusCounts = { "足夠": 0, "庫存偏低": 0, "需補貨": 0, "缺貨": 0 };
 
-                data.forEach(item => {
-                    // 排除空白列
-                    if (!item['耗材編號'] || item['耗材編號'].toString().trim() === '') return;
-
+                validData.forEach(item => {
                     let code = item['耗材編號'] || '-';
                     let name = item['耗材名稱'] || '-';
                     let spec = item['規格/型號'] || '-';
@@ -102,10 +102,11 @@ function initDashboard() {
                 // 更新頂部卡片的真實數字
                 updateDashboardSummary(totalItems, lowStockCount, outOfStockCount);
                 // 重新繪製圓餅圖
-                renderAllCategoryChart(data);
-                renderShortageCategoryChart(data);
+                renderAllCategoryChart(validData);
+                renderShortageCategoryChart(validData);
                 // 顯示各館室缺貨物品
-                renderRoomShortages(data);
+                renderRoomShortages(validData);
+                renderMaterialsPage();
             }
         })
         .catch(error => {
@@ -128,7 +129,7 @@ function showTableMessage(tbody, message, type) {
     tbody.textContent = '';
     const row = document.createElement('tr');
     const cell = document.createElement('td');
-    cell.colSpan = 8;
+    cell.colSpan = tbody.id === 'materials-table-body' ? 9 : 8;
     cell.className = type === 'error' ? 'table-message error' : 'table-message';
     cell.textContent = message;
     row.appendChild(cell);
@@ -144,6 +145,155 @@ function showChartFallback(message) {
 
 function shouldShowInInventoryTable(status) {
     return status === '缺貨' || status === '需補貨';
+}
+
+function initNavigation() {
+    document.querySelectorAll('.sidebar a[data-page]').forEach(link => {
+        link.addEventListener('click', event => {
+            event.preventDefault();
+            switchPage(link.dataset.page);
+        });
+    });
+}
+
+function switchPage(page) {
+    document.querySelectorAll('.view-section').forEach(section => {
+        section.classList.remove('active-view');
+    });
+
+    const target = document.getElementById(`${page}-view`);
+    if (target) target.classList.add('active-view');
+
+    document.querySelectorAll('.sidebar li').forEach(item => {
+        item.classList.remove('active');
+    });
+
+    const activeLink = document.querySelector(`.sidebar a[data-page="${page}"]`);
+    if (activeLink) activeLink.parentElement.classList.add('active');
+
+    const pageTitle = document.getElementById('page-title');
+    if (pageTitle) {
+        pageTitle.textContent = page === 'materials' ? '耗材管理' : '耗材盤點系統';
+    }
+
+    if (page === 'materials') renderMaterialsPage();
+    if (page === 'dashboard') {
+        if (allCategoryChart) allCategoryChart.resize();
+        if (shortageCategoryChart) shortageCategoryChart.resize();
+    }
+}
+
+function initMaterialControls() {
+    const searchInput = document.getElementById('materials-search');
+    const statusFilter = document.getElementById('materials-status-filter');
+    const roomFilter = document.getElementById('materials-room-filter');
+
+    [searchInput, statusFilter, roomFilter].forEach(control => {
+        if (control) control.addEventListener('input', renderMaterialsPage);
+    });
+}
+
+function renderMaterialsPage() {
+    const tbody = document.getElementById('materials-table-body');
+    const count = document.getElementById('materials-count');
+    const searchInput = document.getElementById('materials-search');
+    const statusFilter = document.getElementById('materials-status-filter');
+    const roomFilter = document.getElementById('materials-room-filter');
+
+    if (!tbody) return;
+
+    updateRoomFilterOptions();
+
+    const query = (searchInput ? searchInput.value : '').trim().toLowerCase();
+    const selectedStatus = statusFilter ? statusFilter.value : 'all';
+    const selectedRoom = roomFilter ? roomFilter.value : 'all';
+
+    const filteredData = inventoryData.filter(item => {
+        const status = (item['庫存狀態'] || '足夠').toString().trim();
+        const room = (item['館室'] || '未分類').toString().trim();
+        const text = [
+            item['耗材編號'],
+            item['耗材名稱'],
+            item['類別'],
+            item['規格/型號'],
+            item['館室'],
+            item['存放位置']
+        ].join(' ').toLowerCase();
+
+        const matchesQuery = !query || text.includes(query);
+        const matchesStatus = selectedStatus === 'all' || status === selectedStatus;
+        const matchesRoom = selectedRoom === 'all' || room === selectedRoom;
+
+        return matchesQuery && matchesStatus && matchesRoom;
+    });
+
+    tbody.textContent = '';
+
+    if (count) {
+        count.textContent = `共 ${filteredData.length} 項符合條件，全部耗材 ${inventoryData.length} 項`;
+    }
+
+    if (filteredData.length === 0) {
+        showTableMessage(tbody, '沒有符合條件的耗材項目');
+        return;
+    }
+
+    filteredData.forEach(item => {
+        const currentStock = item['目前庫存量'] !== undefined ? Number(item['目前庫存量']) : 0;
+        const safeStock = item['安全庫存量'] !== undefined ? Number(item['安全庫存量']) : 0;
+        const status = (item['庫存狀態'] || '足夠').toString().trim();
+        const statusStyle = getStatusStyle(status);
+        const row = document.createElement('tr');
+        row.className = 'inventory-row';
+
+        appendCell(row, item['耗材編號'] || '-');
+        appendCell(row, item['耗材名稱'] || '-', 'item-name');
+        appendCell(row, item['類別'] || '未分類', 'muted');
+        appendCell(row, item['規格/型號'] || '-', 'muted');
+        appendCell(row, item['館室'] || '-', 'muted');
+        appendCell(row, item['存放位置'] || '-', 'muted');
+        appendCell(row, currentStock, currentStock <= safeStock ? 'stock-warning' : 'stock-ok');
+        appendCell(row, safeStock, 'muted');
+
+        const statusCell = appendCell(row, '');
+        const badge = document.createElement('span');
+        badge.className = 'status-badge';
+        badge.textContent = status;
+        badge.style.backgroundColor = statusStyle.background;
+        badge.style.color = statusStyle.color;
+        statusCell.appendChild(badge);
+
+        tbody.appendChild(row);
+    });
+}
+
+function updateRoomFilterOptions() {
+    const roomFilter = document.getElementById('materials-room-filter');
+    if (!roomFilter) return;
+
+    const selectedRoom = roomFilter.value;
+    const rooms = [...new Set(inventoryData.map(item => (item['館室'] || '未分類').toString().trim()))].sort();
+
+    roomFilter.textContent = '';
+    const allOption = document.createElement('option');
+    allOption.value = 'all';
+    allOption.textContent = '全部館室';
+    roomFilter.appendChild(allOption);
+
+    rooms.forEach(room => {
+        const option = document.createElement('option');
+        option.value = room;
+        option.textContent = room;
+        roomFilter.appendChild(option);
+    });
+
+    roomFilter.value = rooms.includes(selectedRoom) ? selectedRoom : 'all';
+}
+
+function getStatusStyle(status) {
+    if (status === '缺貨') return { color: '#ef4444', background: 'rgba(239, 68, 68, 0.2)' };
+    if (status === '需補貨' || status === '庫存偏低') return { color: '#f59e0b', background: 'rgba(245, 158, 11, 0.2)' };
+    return { color: '#3b82f6', background: 'rgba(59, 130, 246, 0.2)' };
 }
 
 // 動態修改網頁上方卡片數字
@@ -308,4 +458,6 @@ window.addEventListener('resize', function() {
 });
 
 // 啟動主程式
+initNavigation();
+initMaterialControls();
 initDashboard();
