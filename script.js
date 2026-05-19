@@ -89,7 +89,7 @@ function initDashboard() {
                 // 更新頂部卡片的真實數字
                 updateDashboardSummary(totalItems, lowStockCount, outOfStockCount);
                 // 重新繪製圓餅圖
-                renderDonutChart(statusCounts);
+                renderDonutChart(data);
                 // 顯示各館室缺貨物品
                 renderRoomShortages(data);
             }
@@ -113,24 +113,65 @@ if (cardValues && cardValues.length >= 3) {
 }
 }
 
-function renderDonutChart(counts) {
+function renderDonutChart(data) {
+
+    const categoryCounts = {};
+
+    data.forEach(item => {
+
+        const category = (item['類別'] || '未分類').trim();
+        const status = (item['庫存狀態'] || '').trim();
+
+        if (status === '缺貨' || status === '需補貨' || status === '庫存偏低') {
+
+            if (!categoryCounts[category]) {
+                categoryCounts[category] = 0;
+            }
+
+            categoryCounts[category]++;
+        }
+    });
+
+    const chartData = Object.keys(categoryCounts).map(category => ({
+        name: category,
+        value: categoryCounts[category]
+    }));
+
     var donutOption = {
-        tooltip: { trigger: 'item' },
-        color: ['#3b82f6', '#f59e0b', '#ef4444'], 
+        tooltip: {
+            trigger: 'item'
+        },
+
+        legend: {
+            orient: 'vertical',
+            right: 10,
+            top: 'center',
+            textStyle: {
+                color: '#94a3b8'
+            }
+        },
+
         series: [
             {
-                name: '庫存狀態',
+                name: '缺料比例',
                 type: 'pie',
                 radius: ['40%', '70%'],
-                itemStyle: { borderRadius: 8, borderColor: '#111827', borderWidth: 2 },
-                data: [
-                    { value: counts['足夠'] || 0, name: '庫存充足' },
-                    { value: counts['庫存偏低'] || counts['需補貨'] || 0, name: '庫存偏低' },
-                    { value: counts['缺貨'] || 0, name: '缺貨' }
-                ]
+
+                itemStyle: {
+                    borderRadius: 8,
+                    borderColor: '#111827',
+                    borderWidth: 2
+                },
+
+                label: {
+                    color: '#e2e8f0'
+                },
+
+                data: chartData
             }
         ]
     };
+
     donutChart.setOption(donutOption);
 }
 
