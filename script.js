@@ -2,7 +2,8 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbyohRUonPSdTW8c8yG9_HJEv-G8s_Nz7GXSOCoPV13N_f4Jqka7m0AhHRsTqZVUxotQ/exec";
 
 // 初始化 ECharts 圖表
-var donutChart = echarts.init(document.getElementById('donut-chart'));
+var allCategoryChart = echarts.init(document.getElementById('all-category-chart'));
+var shortageCategoryChart = echarts.init(document.getElementById('shortage-category-chart'));
 
 function initDashboard() {
     const tbody = document.getElementById('inventory-table-body');
@@ -89,7 +90,8 @@ function initDashboard() {
                 // 更新頂部卡片的真實數字
                 updateDashboardSummary(totalItems, lowStockCount, outOfStockCount);
                 // 重新繪製圓餅圖
-                renderDonutChart(data);
+                renderAllCategoryChart(data);
+                renderShortageCategoryChart(data);
                 // 顯示各館室缺貨物品
                 renderRoomShortages(data);
             }
@@ -113,17 +115,59 @@ if (cardValues && cardValues.length >= 3) {
 }
 }
 
-function renderDonutChart(data) {
-
+function renderAllCategoryChart(data) {
     const categoryCounts = {};
 
     data.forEach(item => {
+        const category = (item['類別'] || '未分類').trim();
 
+        if (!categoryCounts[category]) {
+            categoryCounts[category] = 0;
+        }
+
+        categoryCounts[category]++;
+    });
+
+    const chartData = Object.keys(categoryCounts).map(category => ({
+        name: category,
+        value: categoryCounts[category]
+    }));
+
+    allCategoryChart.setOption({
+        tooltip: { trigger: 'item' },
+        legend: {
+            orient: 'vertical',
+            right: 10,
+            top: 'center',
+            textStyle: { color: '#94a3b8' }
+        },
+        series: [{
+            name: '所有耗材比例',
+            type: 'pie',
+            radius: ['40%', '70%'],
+            itemStyle: {
+                borderRadius: 8,
+                borderColor: '#111827',
+                borderWidth: 2
+            },
+            label: { color: '#e2e8f0' },
+            data: chartData
+        }]
+    });
+}
+
+function renderShortageCategoryChart(data) {
+    const categoryCounts = {};
+
+    data.forEach(item => {
         const category = (item['類別'] || '未分類').trim();
         const status = (item['庫存狀態'] || '').trim();
 
-        if (status === '缺貨' || status === '需補貨' || status === '庫存偏低') {
-
+        if (
+            status === '缺貨' ||
+            status === '需補貨' ||
+            status === '庫存偏低'
+        ) {
             if (!categoryCounts[category]) {
                 categoryCounts[category] = 0;
             }
@@ -137,42 +181,27 @@ function renderDonutChart(data) {
         value: categoryCounts[category]
     }));
 
-    var donutOption = {
-        tooltip: {
-            trigger: 'item'
-        },
-
+    shortageCategoryChart.setOption({
+        tooltip: { trigger: 'item' },
         legend: {
             orient: 'vertical',
             right: 10,
             top: 'center',
-            textStyle: {
-                color: '#94a3b8'
-            }
+            textStyle: { color: '#94a3b8' }
         },
-
-        series: [
-            {
-                name: '缺料比例',
-                type: 'pie',
-                radius: ['40%', '70%'],
-
-                itemStyle: {
-                    borderRadius: 8,
-                    borderColor: '#111827',
-                    borderWidth: 2
-                },
-
-                label: {
-                    color: '#e2e8f0'
-                },
-
-                data: chartData
-            }
-        ]
-    };
-
-    donutChart.setOption(donutOption);
+        series: [{
+            name: '缺料比例',
+            type: 'pie',
+            radius: ['40%', '70%'],
+            itemStyle: {
+                borderRadius: 8,
+                borderColor: '#111827',
+                borderWidth: 2
+            },
+            label: { color: '#e2e8f0' },
+            data: chartData
+        }]
+    });
 }
 
 function renderRoomShortages(data) {
@@ -242,7 +271,8 @@ function renderRoomShortages(data) {
 }
 
 window.addEventListener('resize', function() {
-    donutChart.resize();
+    allCategoryChart.resize();
+    shortageCategoryChart.resize();
 });
 
 // 啟動主程式
