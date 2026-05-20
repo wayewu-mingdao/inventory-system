@@ -306,6 +306,7 @@ function initTransactionControls() {
     const itemSelect = document.getElementById('transaction-item');
     const quantityInput = document.getElementById('transaction-quantity');
     const categorySelect = document.getElementById('transaction-category');
+    const locationSelect = document.getElementById('transaction-location');
     const searchInput = document.getElementById('transaction-search');
 
     if (!form || !itemSelect || !quantityInput) return;
@@ -315,7 +316,11 @@ function initTransactionControls() {
         dateInput.value = new Date().toISOString().slice(0, 10);
     }
 
-    if (categorySelect) categorySelect.addEventListener('change', renderTransactionItems);
+    if (categorySelect) categorySelect.addEventListener('change', () => {
+        renderTransactionLocations();
+        renderTransactionItems();
+    });
+    if (locationSelect) locationSelect.addEventListener('change', renderTransactionItems);
     if (searchInput) searchInput.addEventListener('input', renderTransactionItems);
     itemSelect.addEventListener('change', updateTransactionPreview);
     quantityInput.addEventListener('input', updateTransactionPreview);
@@ -331,6 +336,7 @@ function initTransactionControls() {
 
 function renderTransactionPage() {
     renderTransactionCategories();
+    renderTransactionLocations();
     renderTransactionItems();
 }
 
@@ -363,6 +369,37 @@ function renderTransactionCategories() {
     }
 }
 
+function renderTransactionLocations() {
+    const locationSelect = document.getElementById('transaction-location');
+    if (!locationSelect) return;
+
+    const currentValue = locationSelect.value;
+    const selectedCategory = document.getElementById('transaction-category')?.value || '';
+    const locations = [...new Set(inventoryData
+        .filter(item => !selectedCategory || String(item['類別'] || '未分類').trim() === selectedCategory)
+        .map(item => getTransactionLocationLabel(item))
+        .filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+
+    locationSelect.textContent = '';
+
+    const allOption = document.createElement('option');
+    allOption.value = '';
+    allOption.textContent = '全部位置';
+    locationSelect.appendChild(allOption);
+
+    locations.forEach(location => {
+        const option = document.createElement('option');
+        option.value = location;
+        option.textContent = location;
+        locationSelect.appendChild(option);
+    });
+
+    if (locations.includes(currentValue)) {
+        locationSelect.value = currentValue;
+    }
+}
+
 function renderTransactionItems() {
     const itemSelect = document.getElementById('transaction-item');
     if (!itemSelect) return;
@@ -381,12 +418,13 @@ function renderTransactionItems() {
         const code = item['耗材編號'] || '';
         const name = item['耗材名稱'] || '';
         const spec = item['規格/型號'] ? `｜${item['規格/型號']}` : '';
-        option.value = code;
-        option.textContent = `${code}｜${name}${spec}`;
+        const location = getTransactionLocationLabel(item);
+        option.value = getTransactionItemKey(item);
+        option.textContent = `${code}｜${name}${spec}｜${location}`;
         itemSelect.appendChild(option);
     });
 
-    if (filteredItems.some(item => item['耗材編號'] === currentValue)) {
+    if (filteredItems.some(item => getTransactionItemKey(item) === currentValue)) {
         itemSelect.value = currentValue;
     }
 
@@ -395,13 +433,16 @@ function renderTransactionItems() {
 
 function getFilteredTransactionItems() {
     const categorySelect = document.getElementById('transaction-category');
+    const locationSelect = document.getElementById('transaction-location');
     const searchInput = document.getElementById('transaction-search');
     const selectedCategory = categorySelect ? categorySelect.value : '';
+    const selectedLocation = locationSelect ? locationSelect.value : '';
     const keyword = searchInput ? searchInput.value.trim().toLowerCase() : '';
 
     return inventoryData.filter(item => {
         const category = String(item['類別'] || '未分類').trim();
         const matchesCategory = !selectedCategory || category === selectedCategory;
+        const matchesLocation = !selectedLocation || getTransactionLocationLabel(item) === selectedLocation;
         const searchableText = [
             item['耗材編號'],
             item['耗材名稱'],
@@ -412,7 +453,7 @@ function getFilteredTransactionItems() {
         ].map(value => String(value || '').toLowerCase()).join(' ');
         const matchesKeyword = !keyword || searchableText.includes(keyword);
 
-        return matchesCategory && matchesKeyword;
+        return matchesCategory && matchesLocation && matchesKeyword;
     });
 }
 
@@ -424,7 +465,21 @@ function getTransactionItemPlaceholder(filteredCount) {
 function getSelectedTransactionItem() {
     const itemSelect = document.getElementById('transaction-item');
     if (!itemSelect || !itemSelect.value) return null;
-    return inventoryData.find(item => item['耗材編號'] === itemSelect.value) || null;
+    return inventoryData.find(item => getTransactionItemKey(item) === itemSelect.value) || null;
+}
+
+function getTransactionItemKey(item) {
+    return [
+        item['耗材編號'],
+        item['館室'],
+        item['存放位置']
+    ].map(value => encodeURIComponent(String(value || '').trim())).join('|');
+}
+
+function getTransactionLocationLabel(item) {
+    const room = item['館室'] || '未設定館室';
+    const location = item['存放位置'] || '未設定位置';
+    return `${room} / ${location}`;
 }
 
 function updateTransactionPreview() {
@@ -477,6 +532,7 @@ function buildTransactionPayload() {
         date: document.getElementById('transaction-date')?.value || '',
         itemCode: item?.['耗材編號'] || '',
         itemName: item?.['耗材名稱'] || '',
+        itemKey: item ? getTransactionItemKey(item) : '',
         category: item?.['類別'] || '',
         spec: item?.['規格/型號'] || '',
         room: item?.['館室'] || '',

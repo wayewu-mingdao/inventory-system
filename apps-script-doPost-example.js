@@ -3,7 +3,7 @@
  * Keep your existing doGet(e), then add this doPost(e).
  *
  * Expected sheets:
- * - 耗材清單: must contain headers 耗材編號 and 目前庫存量
+ * - 耗材清單: must contain headers 耗材編號, 館室, 存放位置, and 目前庫存量
  * - 入出庫紀錄: created automatically if missing
  */
 
@@ -22,6 +22,8 @@ function doPost(e) {
       success: true,
       message: 'saved',
       itemCode: payload.itemCode,
+      room: payload.room,
+      location: payload.location,
       afterStock: payload.afterStock
     });
   } catch (error) {
@@ -89,20 +91,30 @@ function updateInventoryStock_(sheet, payload) {
 
   var headers = values[0];
   var codeColumn = headers.indexOf('耗材編號') + 1;
+  var roomColumn = headers.indexOf('館室') + 1;
+  var locationColumn = headers.indexOf('存放位置') + 1;
   var stockColumn = headers.indexOf('目前庫存量') + 1;
 
-  if (!codeColumn || !stockColumn) {
-    throw new Error('耗材清單需要「耗材編號」與「目前庫存量」欄位');
+  if (!codeColumn || !roomColumn || !locationColumn || !stockColumn) {
+    throw new Error('耗材清單需要「耗材編號」、「館室」、「存放位置」與「目前庫存量」欄位');
   }
 
   for (var row = 2; row <= values.length; row++) {
-    if (String(values[row - 1][codeColumn - 1]) === String(payload.itemCode)) {
+    var rowCode = String(values[row - 1][codeColumn - 1]);
+    var rowRoom = String(values[row - 1][roomColumn - 1]);
+    var rowLocation = String(values[row - 1][locationColumn - 1]);
+
+    if (
+      rowCode === String(payload.itemCode) &&
+      rowRoom === String(payload.room || '') &&
+      rowLocation === String(payload.location || '')
+    ) {
       sheet.getRange(row, stockColumn).setValue(Number(payload.afterStock || 0));
       return;
     }
   }
 
-  throw new Error('找不到耗材編號：' + payload.itemCode);
+  throw new Error('找不到耗材：' + payload.itemCode + ' / ' + payload.room + ' / ' + payload.location);
 }
 
 function jsonOutput_(data) {
