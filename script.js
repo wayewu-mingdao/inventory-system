@@ -305,6 +305,8 @@ function initTransactionControls() {
     const form = document.getElementById('transaction-form');
     const itemSelect = document.getElementById('transaction-item');
     const quantityInput = document.getElementById('transaction-quantity');
+    const categorySelect = document.getElementById('transaction-category');
+    const searchInput = document.getElementById('transaction-search');
 
     if (!form || !itemSelect || !quantityInput) return;
 
@@ -313,12 +315,14 @@ function initTransactionControls() {
         dateInput.value = new Date().toISOString().slice(0, 10);
     }
 
+    if (categorySelect) categorySelect.addEventListener('change', renderTransactionItems);
+    if (searchInput) searchInput.addEventListener('input', renderTransactionItems);
     itemSelect.addEventListener('change', updateTransactionPreview);
     quantityInput.addEventListener('input', updateTransactionPreview);
     form.addEventListener('reset', () => {
         setTimeout(() => {
             if (dateInput) dateInput.value = new Date().toISOString().slice(0, 10);
-            updateTransactionPreview();
+            renderTransactionItems();
             setTransactionStatus('');
         }, 0);
     });
@@ -326,31 +330,95 @@ function initTransactionControls() {
 }
 
 function renderTransactionPage() {
+    renderTransactionCategories();
+    renderTransactionItems();
+}
+
+function renderTransactionCategories() {
+    const categorySelect = document.getElementById('transaction-category');
+    if (!categorySelect) return;
+
+    const currentValue = categorySelect.value;
+    const categories = [...new Set(inventoryData
+        .map(item => String(item['類別'] || '未分類').trim())
+        .filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+
+    categorySelect.textContent = '';
+
+    const allOption = document.createElement('option');
+    allOption.value = '';
+    allOption.textContent = '全部類別';
+    categorySelect.appendChild(allOption);
+
+    categories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category;
+        categorySelect.appendChild(option);
+    });
+
+    if (categories.includes(currentValue)) {
+        categorySelect.value = currentValue;
+    }
+}
+
+function renderTransactionItems() {
     const itemSelect = document.getElementById('transaction-item');
     if (!itemSelect) return;
 
     const currentValue = itemSelect.value;
+    const filteredItems = getFilteredTransactionItems();
     itemSelect.textContent = '';
 
     const placeholder = document.createElement('option');
     placeholder.value = '';
-    placeholder.textContent = inventoryData.length ? '請選擇耗材' : '目前沒有可用耗材資料';
+    placeholder.textContent = getTransactionItemPlaceholder(filteredItems.length);
     itemSelect.appendChild(placeholder);
 
-    inventoryData.forEach(item => {
+    filteredItems.forEach(item => {
         const option = document.createElement('option');
         const code = item['耗材編號'] || '';
         const name = item['耗材名稱'] || '';
+        const spec = item['規格/型號'] ? `｜${item['規格/型號']}` : '';
         option.value = code;
-        option.textContent = `${code}｜${name}`;
+        option.textContent = `${code}｜${name}${spec}`;
         itemSelect.appendChild(option);
     });
 
-    if (inventoryData.some(item => item['耗材編號'] === currentValue)) {
+    if (filteredItems.some(item => item['耗材編號'] === currentValue)) {
         itemSelect.value = currentValue;
     }
 
     updateTransactionPreview();
+}
+
+function getFilteredTransactionItems() {
+    const categorySelect = document.getElementById('transaction-category');
+    const searchInput = document.getElementById('transaction-search');
+    const selectedCategory = categorySelect ? categorySelect.value : '';
+    const keyword = searchInput ? searchInput.value.trim().toLowerCase() : '';
+
+    return inventoryData.filter(item => {
+        const category = String(item['類別'] || '未分類').trim();
+        const matchesCategory = !selectedCategory || category === selectedCategory;
+        const searchableText = [
+            item['耗材編號'],
+            item['耗材名稱'],
+            item['類別'],
+            item['規格/型號'],
+            item['館室'],
+            item['存放位置']
+        ].map(value => String(value || '').toLowerCase()).join(' ');
+        const matchesKeyword = !keyword || searchableText.includes(keyword);
+
+        return matchesCategory && matchesKeyword;
+    });
+}
+
+function getTransactionItemPlaceholder(filteredCount) {
+    if (!inventoryData.length) return '目前沒有可用耗材資料';
+    return filteredCount ? '請選擇耗材' : '沒有符合條件的耗材';
 }
 
 function getSelectedTransactionItem() {

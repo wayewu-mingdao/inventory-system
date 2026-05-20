@@ -36,6 +36,19 @@
                 </div>
 
                 <form id="transaction-form" class="transaction-form">
+                    <div class="form-grid two-columns">
+                        <label>
+                            <span>類別</span>
+                            <select id="transaction-category">
+                                <option value="">全部類別</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span>搜尋耗材</span>
+                            <input id="transaction-search" type="search" placeholder="輸入編號、名稱、規格或位置">
+                        </label>
+                    </div>
+
                     <label>
                         <span>耗材項目</span>
                         <select id="transaction-item" required>
