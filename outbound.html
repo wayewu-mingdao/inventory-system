@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>出庫管理｜耗材盤點系統</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="logo">FutureShock 113P</div>
+        <nav>
+            <ul>
+                <li><a href="index.html">總覽</a></li>
+                <li><a href="materials.html">耗材管理</a></li>
+                <li><a href="inbound.html">入庫管理</a></li>
+                <li class="active"><a href="outbound.html">出庫管理</a></li>
+                <li><a href="#">盤點紀錄</a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="top-nav">
+            <h2 id="page-title">出庫管理</h2>
+            <div class="user-profile">管理員</div>
+        </header>
+
+        <section class="transaction-layout" data-transaction-type="outbound">
+            <section class="transaction-panel">
+                <div class="section-header">
+                    <div>
+                        <h3>新增出庫紀錄</h3>
+                        <p>選擇耗材後輸入出庫數量，送出後會彙整到 Google Sheet。</p>
+                    </div>
+                </div>
+
+                <form id="transaction-form" class="transaction-form">
+                    <label>
+                        <span>耗材項目</span>
+                        <select id="transaction-item" required>
+                            <option value="">資料載入中...</option>
+                        </select>
+                    </label>
+
+                    <div class="form-grid two-columns">
+                        <label>
+                            <span>出庫數量</span>
+                            <input id="transaction-quantity" type="number" min="1" step="1" required>
+                        </label>
+                        <label>
+                            <span>出庫日期</span>
+                            <input id="transaction-date" type="date" required>
+                        </label>
+                    </div>
+
+                    <div class="form-grid two-columns">
+                        <label>
+                            <span>領用人/用途</span>
+                            <input id="transaction-party" type="text" placeholder="例如：教師姓名、課程或專案">
+                        </label>
+                        <label>
+                            <span>經手人</span>
+                            <input id="transaction-operator" type="text" placeholder="輸入姓名">
+                        </label>
+                    </div>
+
+                    <label>
+                        <span>備註</span>
+                        <textarea id="transaction-note" rows="4" placeholder="可填入使用班級、設備或補充說明"></textarea>
+                    </label>
+
+                    <div id="transaction-status" class="form-status" aria-live="polite"></div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="primary-button">送出出庫</button>
+                        <button type="reset" class="secondary-button">清除</button>
+                    </div>
+                </form>
+            </section>
+
+            <aside class="transaction-summary">
+                <h3>庫存預覽</h3>
+                <dl>
+                    <div>
+                        <dt>耗材編號</dt>
+                        <dd id="preview-code">-</dd>
+                    </div>
+                    <div>
+                        <dt>耗材名稱</dt>
+                        <dd id="preview-name">-</dd>
+                    </div>
+                    <div>
+                        <dt>目前庫存</dt>
+                        <dd id="preview-current">-</dd>
+                    </div>
+                    <div>
+                        <dt>出庫後庫存</dt>
+                        <dd id="preview-after">-</dd>
+                    </div>
+                    <div>
+                        <dt>館室/位置</dt>
+                        <dd id="preview-location">-</dd>
+                    </div>
+                </dl>
+            </aside>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>

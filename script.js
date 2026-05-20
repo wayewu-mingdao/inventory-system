@@ -109,6 +109,7 @@ function initDashboard() {
                 // 顯示各館室缺貨物品
                 renderRoomShortages(validData);
                 renderMaterialsPage();
+                renderTransactionPage();
             }
         })
         .catch(error => {
@@ -300,6 +301,189 @@ function getStatusStyle(status) {
     return { color: '#3b82f6', background: 'rgba(59, 130, 246, 0.2)' };
 }
 
+function initTransactionControls() {
+    const form = document.getElementById('transaction-form');
+    const itemSelect = document.getElementById('transaction-item');
+    const quantityInput = document.getElementById('transaction-quantity');
+
+    if (!form || !itemSelect || !quantityInput) return;
+
+    const dateInput = document.getElementById('transaction-date');
+    if (dateInput && !dateInput.value) {
+        dateInput.value = new Date().toISOString().slice(0, 10);
+    }
+
+    itemSelect.addEventListener('change', updateTransactionPreview);
+    quantityInput.addEventListener('input', updateTransactionPreview);
+    form.addEventListener('reset', () => {
+        setTimeout(() => {
+            if (dateInput) dateInput.value = new Date().toISOString().slice(0, 10);
+            updateTransactionPreview();
+            setTransactionStatus('');
+        }, 0);
+    });
+    form.addEventListener('submit', handleTransactionSubmit);
+}
+
+function renderTransactionPage() {
+    const itemSelect = document.getElementById('transaction-item');
+    if (!itemSelect) return;
+
+    const currentValue = itemSelect.value;
+    itemSelect.textContent = '';
+
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = inventoryData.length ? '請選擇耗材' : '目前沒有可用耗材資料';
+    itemSelect.appendChild(placeholder);
+
+    inventoryData.forEach(item => {
+        const option = document.createElement('option');
+        const code = item['耗材編號'] || '';
+        const name = item['耗材名稱'] || '';
+        option.value = code;
+        option.textContent = `${code}｜${name}`;
+        itemSelect.appendChild(option);
+    });
+
+    if (inventoryData.some(item => item['耗材編號'] === currentValue)) {
+        itemSelect.value = currentValue;
+    }
+
+    updateTransactionPreview();
+}
+
+function getSelectedTransactionItem() {
+    const itemSelect = document.getElementById('transaction-item');
+    if (!itemSelect || !itemSelect.value) return null;
+    return inventoryData.find(item => item['耗材編號'] === itemSelect.value) || null;
+}
+
+function updateTransactionPreview() {
+    const transactionType = getTransactionType();
+    const item = getSelectedTransactionItem();
+    const quantity = getTransactionQuantity();
+
+    const currentStock = item && item['目前庫存量'] !== undefined ? Number(item['目前庫存量']) : 0;
+    const afterStock = transactionType === 'outbound' ? currentStock - quantity : currentStock + quantity;
+
+    setText('preview-code', item ? item['耗材編號'] || '-' : '-');
+    setText('preview-name', item ? item['耗材名稱'] || '-' : '-');
+    setText('preview-current', item ? currentStock : '-');
+    setText('preview-after', item ? afterStock : '-');
+    setText('preview-location', item ? `${item['館室'] || '-'} / ${item['存放位置'] || '-'}` : '-');
+}
+
+function getTransactionType() {
+    const container = document.querySelector('.transaction-layout');
+    return container ? container.dataset.transactionType : '';
+}
+
+function getTransactionQuantity() {
+    const quantityInput = document.getElementById('transaction-quantity');
+    return quantityInput ? Number(quantityInput.value || 0) : 0;
+}
+
+function setText(id, value) {
+    const element = document.getElementById(id);
+    if (element) element.textContent = value;
+}
+
+function setTransactionStatus(message, type) {
+    const status = document.getElementById('transaction-status');
+    if (!status) return;
+    status.className = type ? `form-status ${type}` : 'form-status';
+    status.textContent = message;
+}
+
+function buildTransactionPayload() {
+    const transactionType = getTransactionType();
+    const item = getSelectedTransactionItem();
+    const quantity = getTransactionQuantity();
+    const currentStock = item && item['目前庫存量'] !== undefined ? Number(item['目前庫存量']) : 0;
+    const afterStock = transactionType === 'outbound' ? currentStock - quantity : currentStock + quantity;
+
+    return {
+        action: transactionType,
+        transactionType: transactionType === 'outbound' ? '出庫' : '入庫',
+        date: document.getElementById('transaction-date')?.value || '',
+        itemCode: item?.['耗材編號'] || '',
+        itemName: item?.['耗材名稱'] || '',
+        category: item?.['類別'] || '',
+        spec: item?.['規格/型號'] || '',
+        room: item?.['館室'] || '',
+        location: item?.['存放位置'] || '',
+        quantity,
+        beforeStock: currentStock,
+        afterStock,
+        party: document.getElementById('transaction-party')?.value.trim() || '',
+        operator: document.getElementById('transaction-operator')?.value.trim() || '',
+        note: document.getElementById('transaction-note')?.value.trim() || '',
+        submittedAt: new Date().toISOString()
+    };
+}
+
+async function handleTransactionSubmit(event) {
+    event.preventDefault();
+
+    const transactionType = getTransactionType();
+    const item = getSelectedTransactionItem();
+    const quantity = getTransactionQuantity();
+
+    if (!item) {
+        setTransactionStatus('請先選擇耗材項目。', 'error');
+        return;
+    }
+
+    if (!quantity || quantity < 1) {
+        setTransactionStatus('數量必須大於 0。', 'error');
+        return;
+    }
+
+    const currentStock = item['目前庫存量'] !== undefined ? Number(item['目前庫存量']) : 0;
+    if (transactionType === 'outbound' && quantity > currentStock) {
+        setTransactionStatus('出庫數量不能大於目前庫存。', 'error');
+        return;
+    }
+
+    const submitButton = event.target.querySelector('button[type="submit"]');
+    if (submitButton) submitButton.disabled = true;
+    setTransactionStatus('正在寫入 Google Sheet...', '');
+
+    try {
+        const payload = buildTransactionPayload();
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/plain;charset=utf-8'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error('Google Sheet 寫入失敗');
+
+        let result = {};
+        try {
+            result = await response.json();
+        } catch (error) {
+            result = { success: true };
+        }
+
+        if (result.success === false) {
+            throw new Error(result.message || 'Google Sheet 回傳寫入失敗');
+        }
+
+        setTransactionStatus('已送出並寫入 Google Sheet。重新整理後會看到最新庫存。', 'success');
+        event.target.reset();
+    } catch (error) {
+        console.error('寫入資料失敗:', error);
+        setTransactionStatus('寫入失敗，請確認 Google Apps Script 已部署 doPost 並允許存取。', 'error');
+    } finally {
+        if (submitButton) submitButton.disabled = false;
+        updateTransactionPreview();
+    }
+}
+
 // 動態修改網頁上方卡片數字
 function updateDashboardSummary(totalItems, lowStock, outOfStock) {
     const cardValues = document.querySelectorAll('.summary-cards .card .number');
@@ -464,4 +648,5 @@ window.addEventListener('resize', function() {
 // 啟動主程式
 initNavigation();
 initMaterialControls();
+initTransactionControls();
 initDashboard();

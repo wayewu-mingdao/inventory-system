@@ -258,6 +258,132 @@ tbody td {
     padding: 12px;
 }
 
+.transaction-layout {
+    align-items: start;
+    display: grid;
+    gap: 20px;
+    grid-template-columns: minmax(0, 1fr) 320px;
+}
+
+.transaction-panel,
+.transaction-summary {
+    background-color: #111827;
+    border: 1px solid #1e293b;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.transaction-form {
+    display: grid;
+    gap: 16px;
+}
+
+.transaction-form label {
+    display: grid;
+    gap: 8px;
+}
+
+.transaction-form span {
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+.transaction-form input,
+.transaction-form select,
+.transaction-form textarea {
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    color: #e2e8f0;
+    font-size: 14px;
+    min-height: 42px;
+    padding: 0 12px;
+}
+
+.transaction-form textarea {
+    min-height: 96px;
+    padding: 12px;
+    resize: vertical;
+}
+
+.form-grid {
+    display: grid;
+    gap: 12px;
+}
+
+.two-columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.primary-button,
+.secondary-button {
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    min-height: 40px;
+    padding: 0 16px;
+}
+
+.primary-button {
+    background: #2563eb;
+    border: 1px solid #2563eb;
+    color: #ffffff;
+}
+
+.secondary-button {
+    background: transparent;
+    border: 1px solid #334155;
+    color: #cbd5e1;
+}
+
+.form-status {
+    border-radius: 6px;
+    color: #94a3b8;
+    font-size: 14px;
+    min-height: 20px;
+}
+
+.form-status.success {
+    color: #10b981;
+}
+
+.form-status.error {
+    color: #ef4444;
+}
+
+.transaction-summary h3 {
+    color: #e2e8f0;
+    font-size: 16px;
+    margin-bottom: 16px;
+}
+
+.transaction-summary dl {
+    display: grid;
+    gap: 14px;
+}
+
+.transaction-summary div {
+    border-bottom: 1px solid #1e293b;
+    padding-bottom: 12px;
+}
+
+.transaction-summary dt {
+    color: #94a3b8;
+    font-size: 12px;
+    margin-bottom: 5px;
+}
+
+.transaction-summary dd {
+    color: #e2e8f0;
+    font-size: 15px;
+    font-weight: 600;
+}
+
 @media (max-width: 900px) {
     body {
         display: block;
@@ -304,6 +430,10 @@ tbody td {
     .management-toolbar {
         grid-template-columns: 1fr;
     }
+
+    .transaction-layout {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 560px) {
@@ -322,5 +452,13 @@ tbody td {
 
     .chart-container {
         padding: 16px;
+    }
+
+    .two-columns {
+        grid-template-columns: 1fr;
+    }
+
+    .form-actions {
+        flex-direction: column;
     }
 }
