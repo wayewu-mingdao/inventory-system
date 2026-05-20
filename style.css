@@ -83,9 +83,6 @@ body {
     margin: 10px 0;
 }
 
-.trend.up { color: #10b981; }
-.trend.down { color: #ef4444; }
-
 /* 圖表區 */
 .charts-section {
     display: flex;

@@ -1,5 +1,6 @@
 // 1. 保留你目前設定的最新 Google 部署 URL
 const API_URL = "https://script.google.com/macros/s/AKfycbyohRUonPSdTW8c8yG9_HJEv-G8s_Nz7GXSOCoPV13N_f4Jqka7m0AhHRsTqZVUxotQ/exec";
+const INVENTORY_CACHE_KEY = 'inventory-system-data-cache';
 
 // 初始化 ECharts 圖表
 const hasEcharts = typeof echarts !== 'undefined';
@@ -15,109 +16,102 @@ if (!hasEcharts) {
 
 function initDashboard() {
     const tbody = document.getElementById('inventory-table-body');
-    if (tbody) {
+    const cachedData = getCachedInventoryData();
+
+    if (cachedData.length) {
+        renderInventoryData(cachedData);
+    }
+
+    if (tbody && !cachedData.length) {
         showTableMessage(tbody, '正在即時同步雲端資料庫...');
     }
 
-    fetch(API_URL)
+    fetch(API_URL, { cache: 'no-store' })
         .then(response => {
             if (!response.ok) throw new Error("網路連線回應異常");
             return response.json();
         })
         .then(result => {
             console.log("從 Google 抓到的真實資料:", result);
-            
+
             const data = Array.isArray(result) ? result : result.data;
             if (data && Array.isArray(data)) {
-                const validData = data.filter(item => item['耗材編號'] && item['耗材編號'].toString().trim() !== '');
-                inventoryData = validData;
-                if (tbody) tbody.textContent = '';
-
-                let totalItems = 0;
-                let totalStockAmount = 0;
-                let lowStockCount = 0;
-                let outOfStockCount = 0;   
-                let statusCounts = { "足夠": 0, "庫存偏低": 0, "需補貨": 0, "缺貨": 0 };
-
-                validData.forEach(item => {
-                    let code = item['耗材編號'] || '-';
-                    let name = item['耗材名稱'] || '-';
-                    let spec = item['規格/型號'] || '-';
-                    let room = item['館室'] || '-';
-                    let location = item['存放位置'] || '-';
-                    let currentStock = item['目前庫存量'] !== undefined ? Number(item['目前庫存量']) : 0;
-                    let safeStock = item['安全庫存量'] !== undefined ? Number(item['安全庫存量']) : 0;
-                    let status = (item['庫存狀態'] || '足夠').toString().trim();
-
-                    totalItems++;
-                    totalStockAmount += currentStock;
-                    
-                    if (status === '缺貨') {
-                        outOfStockCount++;
-                        statusCounts['缺貨']++;
-                    } else if (status === '需補貨' || status === '庫存偏低') {
-                        lowStockCount++;
-                        statusCounts['庫存偏低']++;
-                    } else {
-                        statusCounts['足夠']++;
-                    }
-
-                    // 判斷狀態標籤顏色
-                    let statusColor = '#3b82f6'; 
-                    let statusBg = 'rgba(59, 130, 246, 0.2)';
-                    if (status === '缺貨') {
-                        statusColor = '#ef4444'; 
-                        statusBg = 'rgba(239, 68, 68, 0.2)';
-                    } else if (status === '需補貨' || status === '庫存偏低') {
-                        statusColor = '#f59e0b'; 
-                        statusBg = 'rgba(245, 158, 11, 0.2)';
-                    }
-
-                    if (tbody && shouldShowInInventoryTable(status)) {
-                        const row = document.createElement('tr');
-                        row.className = 'inventory-row';
-
-                        appendCell(row, code);
-                        appendCell(row, name, 'item-name');
-                        appendCell(row, spec, 'muted');
-                        appendCell(row, room, 'muted');
-                        appendCell(row, location, 'muted');
-                        appendCell(row, currentStock, currentStock <= safeStock ? 'stock-warning' : 'stock-ok');
-                        appendCell(row, safeStock, 'muted');
-
-                        const statusCell = appendCell(row, '');
-                        const badge = document.createElement('span');
-                        badge.className = 'status-badge';
-                        badge.textContent = status;
-                        badge.style.backgroundColor = statusBg;
-                        badge.style.color = statusColor;
-                        statusCell.appendChild(badge);
-
-                        tbody.appendChild(row);
-                    }
-                });
-
-                if (tbody && tbody.children.length === 0) {
-                    showTableMessage(tbody, '目前沒有缺貨或需補貨項目');
-                }
-
-                // 更新頂部卡片的真實數字
-                updateDashboardSummary(totalItems, lowStockCount, outOfStockCount);
-                // 重新繪製圓餅圖
-                renderAllCategoryChart(validData);
-                renderShortageCategoryChart(validData);
-                // 顯示各館室缺貨物品
-                renderRoomShortages(validData);
-                renderMaterialsPage();
-                renderTransactionPage();
+                saveInventoryCache(data);
+                renderInventoryData(data);
             }
         })
         .catch(error => {
             console.error("讀取資料失敗:", error);
-            if (tbody) {
+            if (tbody && !cachedData.length) {
                 showTableMessage(tbody, '資料同步失敗，請確認 API 網址是否正確', 'error');
             }
         });
+}
+
+function renderInventoryData(data) {
+    const tbody = document.getElementById('inventory-table-body');
+    const validData = data.filter(item => item['耗材編號'] && item['耗材編號'].toString().trim() !== '');
+    inventoryData = validData;
+    if (tbody) tbody.textContent = '';
+
+    let totalItems = 0;
+    let lowStockCount = 0;
+    let outOfStockCount = 0;
+
+    validData.forEach(item => {
+        let code = item['耗材編號'] || '-';
+        let name = item['耗材名稱'] || '-';
+        let spec = item['規格/型號'] || '-';
+        let room = item['館室'] || '-';
+        let location = item['存放位置'] || '-';
+        let currentStock = item['目前庫存量'] !== undefined ? Number(item['目前庫存量']) : 0;
+        let safeStock = item['安全庫存量'] !== undefined ? Number(item['安全庫存量']) : 0;
+        let status = (item['庫存狀態'] || '足夠').toString().trim();
+
+        totalItems++;
+
+        if (status === '缺貨') {
+            outOfStockCount++;
+        } else if (status === '需補貨' || status === '庫存偏低') {
+            lowStockCount++;
+        }
+
+        const statusStyle = getStatusStyle(status);
+
+        if (tbody && shouldShowInInventoryTable(status)) {
+            const row = document.createElement('tr');
+            row.className = 'inventory-row';
+
+            appendCell(row, code);
+            appendCell(row, name, 'item-name');
+            appendCell(row, spec, 'muted');
+            appendCell(row, room, 'muted');
+            appendCell(row, location, 'muted');
+            appendCell(row, currentStock, currentStock <= safeStock ? 'stock-warning' : 'stock-ok');
+            appendCell(row, safeStock, 'muted');
+
+            const statusCell = appendCell(row, '');
+            const badge = document.createElement('span');
+            badge.className = 'status-badge';
+            badge.textContent = status;
+            badge.style.backgroundColor = statusStyle.background;
+            badge.style.color = statusStyle.color;
+            statusCell.appendChild(badge);
+
+            tbody.appendChild(row);
+        }
+    });
+
+    if (tbody && tbody.children.length === 0) {
+        showTableMessage(tbody, '目前沒有缺貨或需補貨項目');
+    }
+
+    updateDashboardSummary(totalItems, lowStockCount, outOfStockCount);
+    renderAllCategoryChart(validData);
+    renderShortageCategoryChart(validData);
+    renderRoomShortages(validData);
+    renderMaterialsPage();
+    renderTransactionPage();
 }
 
 function appendCell(row, value, className) {
@@ -137,6 +131,38 @@ function showTableMessage(tbody, message, type) {
     cell.textContent = message;
     row.appendChild(cell);
     tbody.appendChild(row);
+}
+
+function getCachedInventoryData() {
+    try {
+        const rawCache = localStorage.getItem(INVENTORY_CACHE_KEY);
+        if (!rawCache) return [];
+
+        const cache = JSON.parse(rawCache);
+        return Array.isArray(cache.data) ? cache.data : [];
+    } catch (error) {
+        console.warn('讀取快取資料失敗:', error);
+        return [];
+    }
+}
+
+function saveInventoryCache(data) {
+    try {
+        localStorage.setItem(INVENTORY_CACHE_KEY, JSON.stringify({
+            savedAt: new Date().toISOString(),
+            data
+        }));
+    } catch (error) {
+        console.warn('儲存快取資料失敗:', error);
+    }
+}
+
+function clearInventoryCache() {
+    try {
+        localStorage.removeItem(INVENTORY_CACHE_KEY);
+    } catch (error) {
+        console.warn('清除快取資料失敗:', error);
+    }
 }
 
 function showChartFallback(message) {
@@ -632,6 +658,7 @@ async function handleTransactionSubmit(event) {
             throw new Error(result.message || 'Google Sheet 回傳寫入失敗');
         }
 
+        clearInventoryCache();
         setTransactionStatus('已送出並寫入 Google Sheet。重新整理後會看到最新庫存。', 'success');
         event.target.reset();
     } catch (error) {
