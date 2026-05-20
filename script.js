@@ -637,31 +637,17 @@ async function handleTransactionSubmit(event) {
 
     try {
         const payload = buildTransactionPayload();
-        const response = await fetch(API_URL, {
+        await fetch(API_URL, {
             method: 'POST',
+            mode: 'no-cors',
             headers: {
                 'Content-Type': 'text/plain;charset=utf-8'
             },
             body: JSON.stringify(payload)
         });
 
-        if (!response.ok) {
-            throw new Error(`Google Sheet 寫入失敗，HTTP ${response.status}`);
-        }
-
-        let result = {};
-        try {
-            result = await response.json();
-        } catch (error) {
-            result = { success: true };
-        }
-
-        if (result.success === false) {
-            throw new Error(result.message || 'Google Sheet 回傳寫入失敗');
-        }
-
         clearInventoryCache();
-        setTransactionStatus('已送出並寫入 Google Sheet。重新整理後會看到最新庫存。', 'success');
+        setTransactionStatus('已送出寫入請求。請到 Google Sheet 確認入庫紀錄，重新整理後會看到最新庫存。', 'success');
         event.target.reset();
     } catch (error) {
         console.error('寫入資料失敗:', error);
