@@ -49,7 +49,6 @@ function ensureLogHeader_(sheet) {
     '異動前庫存',
     '異動後庫存',
     '來源/領用',
-    '經手人',
     '備註'
   ];
 
@@ -80,7 +79,6 @@ function appendTransactionLog_(sheet, payload) {
     Number(payload.beforeStock || 0),
     Number(payload.afterStock || 0),
     payload.party || '',
-    payload.operator || '',
     payload.note || ''
   ]);
 }

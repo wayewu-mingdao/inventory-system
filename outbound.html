@@ -36,17 +36,11 @@
                 </div>
 
                 <form id="transaction-form" class="transaction-form">
-                    <div class="form-grid three-columns">
+                    <div class="form-grid two-columns">
                         <label>
                             <span>類別</span>
                             <select id="transaction-category">
                                 <option value="">全部類別</option>
-                            </select>
-                        </label>
-                        <label>
-                            <span>館室/存放位置</span>
-                            <select id="transaction-location">
-                                <option value="">全部位置</option>
                             </select>
                         </label>
                         <label>
@@ -79,8 +73,10 @@
                             <input id="transaction-party" type="text" placeholder="例如：教師姓名、課程或專案">
                         </label>
                         <label>
-                            <span>經手人</span>
-                            <input id="transaction-operator" type="text" placeholder="輸入姓名">
+                            <span>館室/存放位置</span>
+                            <select id="transaction-location" required>
+                                <option value="">請先選擇耗材</option>
+                            </select>
                         </label>
                     </div>
 

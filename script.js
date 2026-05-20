@@ -316,13 +316,13 @@ function initTransactionControls() {
         dateInput.value = new Date().toISOString().slice(0, 10);
     }
 
-    if (categorySelect) categorySelect.addEventListener('change', () => {
-        renderTransactionLocations();
-        renderTransactionItems();
-    });
-    if (locationSelect) locationSelect.addEventListener('change', renderTransactionItems);
+    if (categorySelect) categorySelect.addEventListener('change', renderTransactionItems);
+    if (locationSelect) locationSelect.addEventListener('change', updateTransactionPreview);
     if (searchInput) searchInput.addEventListener('input', renderTransactionItems);
-    itemSelect.addEventListener('change', updateTransactionPreview);
+    itemSelect.addEventListener('change', () => {
+        renderTransactionLocations();
+        updateTransactionPreview();
+    });
     quantityInput.addEventListener('input', updateTransactionPreview);
     form.addEventListener('reset', () => {
         setTimeout(() => {
@@ -336,8 +336,8 @@ function initTransactionControls() {
 
 function renderTransactionPage() {
     renderTransactionCategories();
-    renderTransactionLocations();
     renderTransactionItems();
+    renderTransactionLocations();
 }
 
 function renderTransactionCategories() {
@@ -346,7 +346,7 @@ function renderTransactionCategories() {
 
     const currentValue = categorySelect.value;
     const categories = [...new Set(inventoryData
-        .map(item => String(item['類別'] || '未分類').trim())
+        .map(item => getTransactionCategory(item))
         .filter(Boolean))]
         .sort((a, b) => a.localeCompare(b, 'zh-Hant'));
 
@@ -374,29 +374,26 @@ function renderTransactionLocations() {
     if (!locationSelect) return;
 
     const currentValue = locationSelect.value;
-    const selectedCategory = document.getElementById('transaction-category')?.value || '';
-    const locations = [...new Set(inventoryData
-        .filter(item => !selectedCategory || String(item['類別'] || '未分類').trim() === selectedCategory)
-        .map(item => getTransactionLocationLabel(item))
-        .filter(Boolean))]
-        .sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+    const rows = getTransactionRowsForSelectedProduct();
 
     locationSelect.textContent = '';
 
-    const allOption = document.createElement('option');
-    allOption.value = '';
-    allOption.textContent = '全部位置';
-    locationSelect.appendChild(allOption);
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = rows.length ? '請選擇館室/位置' : '請先選擇耗材';
+    locationSelect.appendChild(placeholder);
 
-    locations.forEach(location => {
+    rows.forEach(item => {
         const option = document.createElement('option');
-        option.value = location;
-        option.textContent = location;
+        option.value = getTransactionRowKey(item);
+        option.textContent = getTransactionLocationLabel(item);
         locationSelect.appendChild(option);
     });
 
-    if (locations.includes(currentValue)) {
+    if (rows.some(item => getTransactionRowKey(item) === currentValue)) {
         locationSelect.value = currentValue;
+    } else if (rows.length === 1) {
+        locationSelect.value = getTransactionRowKey(rows[0]);
     }
 }
 
@@ -405,7 +402,7 @@ function renderTransactionItems() {
     if (!itemSelect) return;
 
     const currentValue = itemSelect.value;
-    const filteredItems = getFilteredTransactionItems();
+    const filteredItems = getFilteredTransactionProducts();
     itemSelect.textContent = '';
 
     const placeholder = document.createElement('option');
@@ -418,43 +415,63 @@ function renderTransactionItems() {
         const code = item['耗材編號'] || '';
         const name = item['耗材名稱'] || '';
         const spec = item['規格/型號'] ? `｜${item['規格/型號']}` : '';
-        const location = getTransactionLocationLabel(item);
-        option.value = getTransactionItemKey(item);
-        option.textContent = `${code}｜${name}${spec}｜${location}`;
+        option.value = getTransactionProductKey(item);
+        option.textContent = `${code}｜${name}${spec}`;
         itemSelect.appendChild(option);
     });
 
-    if (filteredItems.some(item => getTransactionItemKey(item) === currentValue)) {
+    if (filteredItems.some(item => getTransactionProductKey(item) === currentValue)) {
         itemSelect.value = currentValue;
     }
 
+    renderTransactionLocations();
     updateTransactionPreview();
 }
 
-function getFilteredTransactionItems() {
+function getFilteredTransactionRows() {
     const categorySelect = document.getElementById('transaction-category');
-    const locationSelect = document.getElementById('transaction-location');
     const searchInput = document.getElementById('transaction-search');
     const selectedCategory = categorySelect ? categorySelect.value : '';
-    const selectedLocation = locationSelect ? locationSelect.value : '';
     const keyword = searchInput ? searchInput.value.trim().toLowerCase() : '';
 
     return inventoryData.filter(item => {
-        const category = String(item['類別'] || '未分類').trim();
+        const category = getTransactionCategory(item);
         const matchesCategory = !selectedCategory || category === selectedCategory;
-        const matchesLocation = !selectedLocation || getTransactionLocationLabel(item) === selectedLocation;
         const searchableText = [
             item['耗材編號'],
             item['耗材名稱'],
-            item['類別'],
+            getTransactionCategory(item),
             item['規格/型號'],
             item['館室'],
             item['存放位置']
         ].map(value => String(value || '').toLowerCase()).join(' ');
         const matchesKeyword = !keyword || searchableText.includes(keyword);
 
-        return matchesCategory && matchesLocation && matchesKeyword;
+        return matchesCategory && matchesKeyword;
     });
+}
+
+function getFilteredTransactionProducts() {
+    const seen = new Set();
+    const products = [];
+
+    getFilteredTransactionRows().forEach(item => {
+        const key = getTransactionProductKey(item);
+        if (seen.has(key)) return;
+        seen.add(key);
+        products.push(item);
+    });
+
+    return products;
+}
+
+function getTransactionRowsForSelectedProduct() {
+    const productKey = getSelectedTransactionProductKey();
+    if (!productKey) return [];
+
+    return getFilteredTransactionRows()
+        .filter(item => getTransactionProductKey(item) === productKey)
+        .sort((a, b) => getTransactionLocationLabel(a).localeCompare(getTransactionLocationLabel(b), 'zh-Hant'));
 }
 
 function getTransactionItemPlaceholder(filteredCount) {
@@ -463,17 +480,31 @@ function getTransactionItemPlaceholder(filteredCount) {
 }
 
 function getSelectedTransactionItem() {
-    const itemSelect = document.getElementById('transaction-item');
-    if (!itemSelect || !itemSelect.value) return null;
-    return inventoryData.find(item => getTransactionItemKey(item) === itemSelect.value) || null;
+    const locationSelect = document.getElementById('transaction-location');
+    if (!locationSelect || !locationSelect.value) return null;
+    return inventoryData.find(item => getTransactionRowKey(item) === locationSelect.value) || null;
 }
 
-function getTransactionItemKey(item) {
+function getSelectedTransactionProductKey() {
+    const itemSelect = document.getElementById('transaction-item');
+    return itemSelect ? itemSelect.value : '';
+}
+
+function getTransactionProductKey(item) {
+    return encodeURIComponent(String(item['耗材編號'] || '').trim());
+}
+
+function getTransactionRowKey(item) {
     return [
         item['耗材編號'],
         item['館室'],
         item['存放位置']
     ].map(value => encodeURIComponent(String(value || '').trim())).join('|');
+}
+
+function getTransactionCategory(item) {
+    const value = item['類別'] || item['耗材類別'] || item['分類'] || '';
+    return String(value || '未分類').trim() || '未分類';
 }
 
 function getTransactionLocationLabel(item) {
@@ -532,8 +563,8 @@ function buildTransactionPayload() {
         date: document.getElementById('transaction-date')?.value || '',
         itemCode: item?.['耗材編號'] || '',
         itemName: item?.['耗材名稱'] || '',
-        itemKey: item ? getTransactionItemKey(item) : '',
-        category: item?.['類別'] || '',
+        itemKey: item ? getTransactionRowKey(item) : '',
+        category: item ? getTransactionCategory(item) : '',
         spec: item?.['規格/型號'] || '',
         room: item?.['館室'] || '',
         location: item?.['存放位置'] || '',
@@ -541,7 +572,6 @@ function buildTransactionPayload() {
         beforeStock: currentStock,
         afterStock,
         party: document.getElementById('transaction-party')?.value.trim() || '',
-        operator: document.getElementById('transaction-operator')?.value.trim() || '',
         note: document.getElementById('transaction-note')?.value.trim() || '',
         submittedAt: new Date().toISOString()
     };
@@ -554,8 +584,13 @@ async function handleTransactionSubmit(event) {
     const item = getSelectedTransactionItem();
     const quantity = getTransactionQuantity();
 
-    if (!item) {
+    if (!getSelectedTransactionProductKey()) {
         setTransactionStatus('請先選擇耗材項目。', 'error');
+        return;
+    }
+
+    if (!item) {
+        setTransactionStatus('請選擇館室/存放位置。', 'error');
         return;
     }
 
