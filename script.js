@@ -645,7 +645,9 @@ async function handleTransactionSubmit(event) {
             body: JSON.stringify(payload)
         });
 
-        if (!response.ok) throw new Error('Google Sheet 寫入失敗');
+        if (!response.ok) {
+            throw new Error(`Google Sheet 寫入失敗，HTTP ${response.status}`);
+        }
 
         let result = {};
         try {
@@ -663,7 +665,7 @@ async function handleTransactionSubmit(event) {
         event.target.reset();
     } catch (error) {
         console.error('寫入資料失敗:', error);
-        setTransactionStatus('寫入失敗，請確認 Google Apps Script 已部署 doPost 並允許存取。', 'error');
+        setTransactionStatus(`寫入失敗：${error.message}。請確認 Google Apps Script 已部署 doPost 並允許存取。`, 'error');
     } finally {
         if (submitButton) submitButton.disabled = false;
         updateTransactionPreview();
