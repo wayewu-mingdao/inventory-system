@@ -134,28 +134,8 @@ function appendRecordByHeaders_(sheet, payload, inventoryItem) {
   const headers = sheet.getRange(headerRow, 1, 1, lastColumn).getValues()[0];
   const nextRow = findFirstEmptyRecordRow_(sheet, headers, headerRow);
   const values = headers.map(header => getValueForHeader_(header, payload, inventoryItem));
-  const targetRange = sheet.getRange(nextRow, 1, 1, values.length);
 
-  try {
-    targetRange.setValues([values]);
-  } catch (error) {
-    if (!String(error.message || "").includes("資料驗證")) {
-      throw error;
-    }
-
-    allowInvalidDataForExistingValidations_(targetRange);
-    targetRange.setValues([values]);
-  }
-}
-
-function allowInvalidDataForExistingValidations_(range) {
-  const validations = range.getDataValidations();
-  const softenedValidations = validations.map(row => row.map(rule => {
-    if (!rule) return null;
-    return rule.copy().setAllowInvalid(true).build();
-  }));
-
-  range.setDataValidations(softenedValidations);
+  sheet.getRange(nextRow, 1, 1, values.length).setValues([values]);
 }
 
 function findFirstEmptyRecordRow_(sheet, headers, headerRow) {

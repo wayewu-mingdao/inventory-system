@@ -629,10 +629,14 @@ async function handleTransactionSubmit(event) {
 
     try {
         const payload = buildTransactionPayload();
-        const result = writeTransactionPayload(payload);
+        const result = await writeTransactionPayload(payload);
 
         clearInventoryCache();
-        setTransactionStatus(result.message, 'success');
+        if (!result.success) {
+            throw new Error(result.message || 'Google Sheet 回傳寫入失敗');
+        }
+
+        setTransactionStatus('已寫入 Google Sheet。', 'success');
         event.target.reset();
     } catch (error) {
         console.error('寫入資料失敗:', error);
@@ -644,19 +648,33 @@ async function handleTransactionSubmit(event) {
 }
 
 function writeTransactionPayload(payload) {
-    const url = `${API_URL}?payload=${encodeURIComponent(JSON.stringify(payload))}&t=${Date.now()}`;
-    const resultWindow = window.open(url, '_blank', 'noopener,noreferrer');
+    return new Promise((resolve, reject) => {
+        const callbackName = `transactionCallback_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+        const script = document.createElement('script');
+        const timeout = window.setTimeout(() => {
+            cleanup();
+            reject(new Error('Google Sheet 寫入逾時'));
+        }, 15000);
 
-    if (!resultWindow) {
-        window.location.href = url;
-        return {
-            message: '瀏覽器阻擋了結果分頁，已改在目前分頁開啟 Google 寫入結果。看到 success:true 就代表已寫入。'
+        function cleanup() {
+            window.clearTimeout(timeout);
+            delete window[callbackName];
+            script.remove();
+        }
+
+        window[callbackName] = (result) => {
+            cleanup();
+            resolve(result || { success: false, message: 'Google Sheet 沒有回傳結果' });
         };
-    }
 
-    return {
-        message: '已開啟 Google 寫入結果分頁。看到 success:true 後，重新整理本頁即可看到最新庫存與入庫紀錄。'
-    };
+        script.onerror = () => {
+            cleanup();
+            reject(new Error('無法連線到 Google Apps Script'));
+        };
+
+        script.src = `${API_URL}?callback=${encodeURIComponent(callbackName)}&payload=${encodeURIComponent(JSON.stringify(payload))}&t=${Date.now()}`;
+        document.body.appendChild(script);
+    });
 }
 
 // 動態修改網頁上方卡片數字
