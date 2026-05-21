@@ -11,45 +11,53 @@
  */
 
 function doGet(e) {
-  if (e && e.parameter && e.parameter.payload) {
-    const callback = e.parameter.callback || "";
-    const result = saveTransactionPayload_(JSON.parse(e.parameter.payload || "{}"));
-    return callbackOutput_(callback, result);
-  }
+  try {
+    if (e && e.parameter && e.parameter.payload) {
+      const callback = e.parameter.callback || "";
+      const result = saveTransactionPayload_(JSON.parse(e.parameter.payload || "{}"));
+      return callback ? callbackOutput_(callback, result) : jsonOutput_(result);
+    }
 
-  const sheet = SpreadsheetApp
-    .getActiveSpreadsheet()
-    .getSheetByName("耗材主資料");
+    const sheet = SpreadsheetApp
+      .getActiveSpreadsheet()
+      .getSheetByName("耗材主資料");
 
-  const data = sheet.getDataRange().getValues();
+    const data = sheet.getDataRange().getValues();
 
-  // 第 3 列是標題列
-  const headers = data[2];
+    // 第 3 列是標題列
+    const headers = data[2];
 
-  // 第 4 列開始是資料
-  const rows = data.slice(3);
+    // 第 4 列開始是資料
+    const rows = data.slice(3);
 
-  const result = rows
-    .filter(row => row[0] && row[0].toString().trim() !== "")
-    .map(row => {
-      let obj = {};
-      headers.forEach((header, i) => {
-        obj[header] = row[i];
+    const result = rows
+      .filter(row => row[0] && row[0].toString().trim() !== "")
+      .map(row => {
+        let obj = {};
+        headers.forEach((header, i) => {
+          obj[header] = row[i];
+        });
+        return obj;
       });
-      return obj;
-    });
 
-  return ContentService
-    .createTextOutput(JSON.stringify({
+    return jsonOutput_({
       status: "success",
       data: result
-    }))
-    .setMimeType(ContentService.MimeType.JSON);
+    });
+  } catch (error) {
+    return jsonOutput_({
+      success: false,
+      message: error.message
+    });
+  }
 }
 
 function doPost(e) {
   try {
-    const payload = JSON.parse((e && e.postData && e.postData.contents) || "{}");
+    const rawPayload = e && e.parameter && e.parameter.payload
+      ? e.parameter.payload
+      : (e && e.postData && e.postData.contents) || "{}";
+    const payload = JSON.parse(rawPayload);
     return jsonOutput_(saveTransactionPayload_(payload));
   } catch (error) {
     return jsonOutput_({

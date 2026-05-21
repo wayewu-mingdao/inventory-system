@@ -640,7 +640,7 @@ async function handleTransactionSubmit(event) {
         await writeTransactionPayload(payload);
 
         clearInventoryCache();
-        setTransactionStatus('已寫入 Google Sheet。重新整理後會看到最新庫存。', 'success');
+        setTransactionStatus('已送出寫入請求。重新整理後會看到最新庫存，入庫紀錄也會新增一筆資料。', 'success');
         event.target.reset();
     } catch (error) {
         console.error('寫入資料失敗:', error);
@@ -653,7 +653,10 @@ async function handleTransactionSubmit(event) {
 
 function writeTransactionPayload(payload) {
     return new Promise((resolve, reject) => {
-        const image = new Image();
+        const iframeName = `transactionFrame${Date.now()}${Math.floor(Math.random() * 1000)}`;
+        const iframe = document.createElement('iframe');
+        const form = document.createElement('form');
+        const input = document.createElement('input');
         const timeout = window.setTimeout(() => {
             cleanup();
             resolve();
@@ -661,21 +664,34 @@ function writeTransactionPayload(payload) {
 
         function cleanup() {
             window.clearTimeout(timeout);
-            image.onload = null;
-            image.onerror = null;
+            iframe.onload = null;
+            if (form.parentNode) form.parentNode.removeChild(form);
+            window.setTimeout(() => {
+                if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+            }, 0);
         }
 
-        image.onload = () => {
-            cleanup();
-            resolve();
-        };
-        image.onerror = () => {
+        iframe.name = iframeName;
+        iframe.style.display = 'none';
+        iframe.onload = () => {
             cleanup();
             resolve();
         };
 
+        form.method = 'POST';
+        form.action = API_URL;
+        form.target = iframeName;
+        form.style.display = 'none';
+
+        input.type = 'hidden';
+        input.name = 'payload';
+        input.value = JSON.stringify(payload);
+        form.appendChild(input);
+
         try {
-            image.src = `${API_URL}?payload=${encodeURIComponent(JSON.stringify(payload))}&t=${Date.now()}`;
+            document.body.appendChild(iframe);
+            document.body.appendChild(form);
+            form.submit();
         } catch (error) {
             cleanup();
             reject(error);
