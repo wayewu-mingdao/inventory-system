@@ -36,7 +36,7 @@
                 </div>
 
                 <div class="management-toolbar">
-                    <input id="materials-search" type="search" placeholder="搜尋編號、名稱、規格、館室或位置">
+                    <input id="materials-search" type="search" placeholder="搜尋編號、名稱、規格或館室">
                     <select id="materials-status-filter" aria-label="依庫存狀態篩選">
                         <option value="all">全部狀態</option>
                         <option value="缺貨">缺貨</option>
@@ -58,7 +58,6 @@
                                 <th>類別</th>
                                 <th>規格/型號</th>
                                 <th>館室</th>
-                                <th>存放位置</th>
                                 <th>目前庫存</th>
                                 <th>安全庫存</th>
                                 <th>狀態</th>
@@ -66,7 +65,7 @@
                         </thead>
                         <tbody id="materials-table-body">
                             <tr>
-                                <td colspan="9" class="table-message">資料載入中，請稍候...</td>
+                                <td colspan="8" class="table-message">資料載入中，請稍候...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -75,6 +74,6 @@
         </section>
     </main>
 
-    <script src="script.js?v=20260521-form-post"></script>
+    <script src="script.js?v=20260521-room-only"></script>
 </body>
 </html>

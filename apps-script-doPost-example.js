@@ -84,8 +84,7 @@ function saveTransactionPayload_(payload) {
     message: "saved",
     sheetName: logSheetName,
     itemCode: payload.itemCode,
-    room: payload.room,
-    location: payload.location
+    room: payload.room
   };
 }
 
@@ -108,15 +107,13 @@ function findInventoryItem_(spreadsheet, payload) {
   const rows = values.slice(3);
   const codeIndex = headers.indexOf("耗材編號");
   const roomIndex = headers.indexOf("館室");
-  const locationIndex = headers.indexOf("存放位置");
 
   if (codeIndex < 0) return {};
 
   const matchedRow = rows.find(row => {
     const sameCode = String(row[codeIndex] || "") === String(payload.itemCode || "");
     const sameRoom = roomIndex < 0 || String(row[roomIndex] || "") === String(payload.room || "");
-    const sameLocation = locationIndex < 0 || String(row[locationIndex] || "") === String(payload.location || "");
-    return sameCode && sameRoom && sameLocation;
+    return sameCode && sameRoom;
   });
 
   if (!matchedRow) return {};
@@ -140,7 +137,6 @@ function appendRecordByHeaders_(sheet, payload, inventoryItem) {
 function getValueForHeader_(header, payload, inventoryItem) {
   const key = String(header || "").trim();
   const quantity = Number(payload.quantity || 0);
-  const unitPrice = Number(payload.unitPrice || 0);
 
   const values = {
     "送出時間": payload.submittedAt || new Date(),
@@ -153,14 +149,11 @@ function getValueForHeader_(header, payload, inventoryItem) {
     "規格": payload.spec || inventoryItem["規格/型號"] || "",
     "數量": quantity,
     "單位": payload.unit || inventoryItem["單位"] || "",
-    "單價": unitPrice || "",
-    "總價": unitPrice ? unitPrice * quantity : "",
     "供應商": payload.party || "",
     "領用人": payload.party || "",
     "來源/領用": payload.party || "",
     "經手人": "",
     "館室": payload.room || inventoryItem["館室"] || "",
-    "存放位置": payload.location || inventoryItem["存放位置"] || "",
     "異動前庫存": Number(payload.beforeStock || 0),
     "異動後庫存": Number(payload.afterStock || 0),
     "備註": payload.note || ""

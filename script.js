@@ -63,7 +63,6 @@ function renderInventoryData(data) {
         let name = item['耗材名稱'] || '-';
         let spec = item['規格/型號'] || '-';
         let room = item['館室'] || '-';
-        let location = item['存放位置'] || '-';
         let currentStock = item['目前庫存量'] !== undefined ? Number(item['目前庫存量']) : 0;
         let safeStock = item['安全庫存量'] !== undefined ? Number(item['安全庫存量']) : 0;
         let status = (item['庫存狀態'] || '足夠').toString().trim();
@@ -86,7 +85,6 @@ function renderInventoryData(data) {
             appendCell(row, name, 'item-name');
             appendCell(row, spec, 'muted');
             appendCell(row, room, 'muted');
-            appendCell(row, location, 'muted');
             appendCell(row, currentStock, currentStock <= safeStock ? 'stock-warning' : 'stock-ok');
             appendCell(row, safeStock, 'muted');
 
@@ -247,8 +245,7 @@ function renderMaterialsPage() {
             item['耗材名稱'],
             item['類別'],
             item['規格/型號'],
-            item['館室'],
-            item['存放位置']
+            item['館室']
         ].join(' ').toLowerCase();
 
         const matchesQuery = !query || text.includes(query);
@@ -282,7 +279,6 @@ function renderMaterialsPage() {
         appendCell(row, item['類別'] || '未分類', 'muted');
         appendCell(row, item['規格/型號'] || '-', 'muted');
         appendCell(row, item['館室'] || '-', 'muted');
-        appendCell(row, item['存放位置'] || '-', 'muted');
         appendCell(row, currentStock, currentStock <= safeStock ? 'stock-warning' : 'stock-ok');
         appendCell(row, safeStock, 'muted');
 
@@ -406,7 +402,7 @@ function renderTransactionLocations() {
 
     const placeholder = document.createElement('option');
     placeholder.value = '';
-    placeholder.textContent = rows.length ? '請選擇館室/位置' : '請先選擇耗材';
+    placeholder.textContent = rows.length ? '請選擇館室' : '請先選擇耗材';
     locationSelect.appendChild(placeholder);
 
     rows.forEach(item => {
@@ -468,8 +464,7 @@ function getFilteredTransactionRows() {
             item['耗材名稱'],
             getTransactionCategory(item),
             item['規格/型號'],
-            item['館室'],
-            item['存放位置']
+            item['館室']
         ].map(value => String(value || '').toLowerCase()).join(' ');
         const matchesKeyword = !keyword || searchableText.includes(keyword);
 
@@ -523,8 +518,7 @@ function getTransactionProductKey(item) {
 function getTransactionRowKey(item) {
     return [
         item['耗材編號'],
-        item['館室'],
-        item['存放位置']
+        item['館室']
     ].map(value => encodeURIComponent(String(value || '').trim())).join('|');
 }
 
@@ -535,8 +529,7 @@ function getTransactionCategory(item) {
 
 function getTransactionLocationLabel(item) {
     const room = item['館室'] || '未設定館室';
-    const location = item['存放位置'] || '未設定位置';
-    return `${room} / ${location}`;
+    return room;
 }
 
 function updateTransactionPreview() {
@@ -551,7 +544,7 @@ function updateTransactionPreview() {
     setText('preview-name', item ? item['耗材名稱'] || '-' : '-');
     setText('preview-current', item ? currentStock : '-');
     setText('preview-after', item ? afterStock : '-');
-    setText('preview-location', item ? `${item['館室'] || '-'} / ${item['存放位置'] || '-'}` : '-');
+    setText('preview-location', item ? item['館室'] || '-' : '-');
 }
 
 function getTransactionType() {
@@ -593,7 +586,6 @@ function buildTransactionPayload() {
         category: item ? getTransactionCategory(item) : '',
         spec: item?.['規格/型號'] || '',
         room: item?.['館室'] || '',
-        location: item?.['存放位置'] || '',
         quantity,
         beforeStock: currentStock,
         afterStock,
@@ -616,7 +608,7 @@ async function handleTransactionSubmit(event) {
     }
 
     if (!item) {
-        setTransactionStatus('請選擇館室/存放位置。', 'error');
+        setTransactionStatus('請選擇館室。', 'error');
         return;
     }
 
