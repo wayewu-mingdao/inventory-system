@@ -1,5 +1,5 @@
 // 1. 保留你目前設定的最新 Google 部署 URL
-const API_URL = "https://script.google.com/macros/s/AKfycbyohRUonPSdTW8c8yG9_HJEv-G8s_Nz7GXSOCoPV13N_f4Jqka7m0AhHRsTqZVUxotQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwyM2uqVvcFyoMTXpzW54wm0unhQWsPWZ9QFMVlPXOwNs7yoVVQDyZMwdxYqTlAnTXx/exec";
 const INVENTORY_CACHE_KEY = 'inventory-system-data-cache';
 
 // 初始化 ECharts 圖表
