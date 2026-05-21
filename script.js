@@ -1,5 +1,5 @@
 // 1. 保留你目前設定的最新 Google 部署 URL
-const API_URL = "https://script.google.com/macros/s/AKfycbwyM2uqVvcFyoMTXpzW54wm0unhQWsPWZ9QFMVlPXOwNs7yoVVQDyZMwdxYqTlAnTXx/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxZJYNnZWOaNEdD-QbRLEOl8xFx5CEP22bx7fdmSwyuGem7drVeSdXXhsLnOqgXPQ1w/exec";
 const INVENTORY_CACHE_KEY = 'inventory-system-data-cache';
 
 // 初始化 ECharts 圖表
@@ -647,34 +647,28 @@ async function handleTransactionSubmit(event) {
     }
 }
 
-function writeTransactionPayload(payload) {
-    return new Promise((resolve, reject) => {
-        const callbackName = `transactionCallback_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-        const script = document.createElement('script');
-        const timeout = window.setTimeout(() => {
-            cleanup();
-            reject(new Error('Google Sheet 寫入逾時'));
-        }, 15000);
+ function writeTransactionPayload(payload) {
 
-        function cleanup() {
-            window.clearTimeout(timeout);
-            delete window[callbackName];
-            script.remove();
-        }
+    const url = `${API_URL}?payload=${encodeURIComponent(JSON.stringify(payload))}&t=${Date.now()}`;
 
-        window[callbackName] = (result) => {
-            cleanup();
-            resolve(result || { success: false, message: 'Google Sheet 沒有回傳結果' });
-        };
+    return fetch(url, {
 
-        script.onerror = () => {
-            cleanup();
-            reject(new Error('無法連線到 Google Apps Script'));
-        };
+        method: 'GET',
 
-        script.src = `https://script.google.com/macros/s/AKfycbyohRUonPSdTW8c8yG9_HJEv-G8s_Nz7GXSOCoPV13N_f4Jqka7m0AhHRsTqZVUxotQ/exec?callback=${encodeURIComponent(callbackName)}&payload=${encodeURIComponent(JSON.stringify(payload))}&t=${Date.now()}`;
-        document.body.appendChild(script);
+        mode: 'no-cors',
+
+        cache: 'no-store'
+
+    }).then(() => {
+
+        return { success: true };
+
+    }).catch(() => {
+
+        throw new Error('無法送出資料到 Google Apps Script');
+
     });
+
 }
 
 // 動態修改網頁上方卡片數字
