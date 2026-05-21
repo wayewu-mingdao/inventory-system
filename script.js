@@ -629,10 +629,10 @@ async function handleTransactionSubmit(event) {
 
     try {
         const payload = buildTransactionPayload();
-        await writeTransactionPayload(payload);
+        const result = writeTransactionPayload(payload);
 
         clearInventoryCache();
-        setTransactionStatus('已送出寫入請求。重新整理後會看到最新庫存，入庫紀錄也會新增一筆資料。', 'success');
+        setTransactionStatus(result.message, 'success');
         event.target.reset();
     } catch (error) {
         console.error('寫入資料失敗:', error);
@@ -644,36 +644,19 @@ async function handleTransactionSubmit(event) {
 }
 
 function writeTransactionPayload(payload) {
-    return new Promise((resolve, reject) => {
-        const image = new Image();
-        const url = `${API_URL}?payload=${encodeURIComponent(JSON.stringify(payload))}&t=${Date.now()}`;
-        const timeout = window.setTimeout(() => {
-            cleanup();
-            resolve();
-        }, 5000);
+    const url = `${API_URL}?payload=${encodeURIComponent(JSON.stringify(payload))}&t=${Date.now()}`;
+    const resultWindow = window.open(url, '_blank', 'noopener,noreferrer');
 
-        function cleanup() {
-            window.clearTimeout(timeout);
-            image.onload = null;
-            image.onerror = null;
-        }
-
-        image.onload = () => {
-            cleanup();
-            resolve();
+    if (!resultWindow) {
+        window.location.href = url;
+        return {
+            message: '瀏覽器阻擋了結果分頁，已改在目前分頁開啟 Google 寫入結果。看到 success:true 就代表已寫入。'
         };
-        image.onerror = () => {
-            cleanup();
-            resolve();
-        };
+    }
 
-        try {
-            image.src = url;
-        } catch (error) {
-            cleanup();
-            reject(error);
-        }
-    });
+    return {
+        message: '已開啟 Google 寫入結果分頁。看到 success:true 後，重新整理本頁即可看到最新庫存與入庫紀錄。'
+    };
 }
 
 // 動態修改網頁上方卡片數字
