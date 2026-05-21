@@ -653,34 +653,33 @@ async function handleTransactionSubmit(event) {
 
 function writeTransactionPayload(payload) {
     return new Promise((resolve, reject) => {
-        const callbackName = `transactionCallback${Date.now()}${Math.floor(Math.random() * 1000)}`;
-        const script = document.createElement('script');
+        const image = new Image();
         const timeout = window.setTimeout(() => {
             cleanup();
-            reject(new Error('Google Sheet 寫入逾時'));
-        }, 15000);
+            resolve();
+        }, 4000);
 
         function cleanup() {
             window.clearTimeout(timeout);
-            delete window[callbackName];
-            if (script.parentNode) script.parentNode.removeChild(script);
+            image.onload = null;
+            image.onerror = null;
         }
 
-        window[callbackName] = result => {
+        image.onload = () => {
             cleanup();
-            if (result && result.success === false) {
-                reject(new Error(result.message || 'Google Sheet 回傳寫入失敗'));
-                return;
-            }
-            resolve(result || {});
+            resolve();
+        };
+        image.onerror = () => {
+            cleanup();
+            resolve();
         };
 
-        script.onerror = () => {
+        try {
+            image.src = `${API_URL}?payload=${encodeURIComponent(JSON.stringify(payload))}&t=${Date.now()}`;
+        } catch (error) {
             cleanup();
-            reject(new Error('Google Sheet 寫入請求失敗'));
-        };
-        script.src = `${API_URL}?callback=${callbackName}&payload=${encodeURIComponent(JSON.stringify(payload))}`;
-        document.body.appendChild(script);
+            reject(error);
+        }
     });
 }
 
