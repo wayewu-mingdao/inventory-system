@@ -637,17 +637,10 @@ async function handleTransactionSubmit(event) {
 
     try {
         const payload = buildTransactionPayload();
-        await fetch(API_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: {
-                'Content-Type': 'text/plain;charset=utf-8'
-            },
-            body: JSON.stringify(payload)
-        });
+        await writeTransactionPayload(payload);
 
         clearInventoryCache();
-        setTransactionStatus('已送出寫入請求。請到 Google Sheet 確認入庫紀錄，重新整理後會看到最新庫存。', 'success');
+        setTransactionStatus('已寫入 Google Sheet。重新整理後會看到最新庫存。', 'success');
         event.target.reset();
     } catch (error) {
         console.error('寫入資料失敗:', error);
@@ -656,6 +649,39 @@ async function handleTransactionSubmit(event) {
         if (submitButton) submitButton.disabled = false;
         updateTransactionPreview();
     }
+}
+
+function writeTransactionPayload(payload) {
+    return new Promise((resolve, reject) => {
+        const callbackName = `transactionCallback${Date.now()}${Math.floor(Math.random() * 1000)}`;
+        const script = document.createElement('script');
+        const timeout = window.setTimeout(() => {
+            cleanup();
+            reject(new Error('Google Sheet 寫入逾時'));
+        }, 15000);
+
+        function cleanup() {
+            window.clearTimeout(timeout);
+            delete window[callbackName];
+            if (script.parentNode) script.parentNode.removeChild(script);
+        }
+
+        window[callbackName] = result => {
+            cleanup();
+            if (result && result.success === false) {
+                reject(new Error(result.message || 'Google Sheet 回傳寫入失敗'));
+                return;
+            }
+            resolve(result || {});
+        };
+
+        script.onerror = () => {
+            cleanup();
+            reject(new Error('Google Sheet 寫入請求失敗'));
+        };
+        script.src = `${API_URL}?callback=${callbackName}&payload=${encodeURIComponent(JSON.stringify(payload))}`;
+        document.body.appendChild(script);
+    });
 }
 
 // 動態修改網頁上方卡片數字

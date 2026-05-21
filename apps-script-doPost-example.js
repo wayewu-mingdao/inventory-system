@@ -10,7 +10,13 @@
  * does not directly update 耗材主資料, so your sheet formulas can summarize stock.
  */
 
-function doGet() {
+function doGet(e) {
+  if (e && e.parameter && e.parameter.payload) {
+    const callback = e.parameter.callback || "";
+    const result = saveTransactionPayload_(JSON.parse(e.parameter.payload || "{}"));
+    return callbackOutput_(callback, result);
+  }
+
   const sheet = SpreadsheetApp
     .getActiveSpreadsheet()
     .getSheetByName("耗材主資料");
@@ -44,31 +50,35 @@ function doGet() {
 function doPost(e) {
   try {
     const payload = JSON.parse((e && e.postData && e.postData.contents) || "{}");
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    const inventoryItem = findInventoryItem_(spreadsheet, payload);
-    const logSheetName = getTransactionLogSheetName_(payload);
-    const logSheet = spreadsheet.getSheetByName(logSheetName);
-
-    if (!logSheet) {
-      throw new Error("找不到「" + logSheetName + "」工作表");
-    }
-
-    appendRecordByHeaders_(logSheet, payload, inventoryItem);
-
-    return jsonOutput_({
-      success: true,
-      message: "saved",
-      sheetName: logSheetName,
-      itemCode: payload.itemCode,
-      room: payload.room,
-      location: payload.location
-    });
+    return jsonOutput_(saveTransactionPayload_(payload));
   } catch (error) {
     return jsonOutput_({
       success: false,
       message: error.message
     });
   }
+}
+
+function saveTransactionPayload_(payload) {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const inventoryItem = findInventoryItem_(spreadsheet, payload);
+  const logSheetName = getTransactionLogSheetName_(payload);
+  const logSheet = spreadsheet.getSheetByName(logSheetName);
+
+  if (!logSheet) {
+    throw new Error("找不到「" + logSheetName + "」工作表");
+  }
+
+  appendRecordByHeaders_(logSheet, payload, inventoryItem);
+
+  return {
+    success: true,
+    message: "saved",
+    sheetName: logSheetName,
+    itemCode: payload.itemCode,
+    room: payload.room,
+    location: payload.location
+  };
 }
 
 function getTransactionLogSheetName_(payload) {
@@ -155,4 +165,11 @@ function jsonOutput_(data) {
   return ContentService
     .createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+function callbackOutput_(callback, data) {
+  const safeCallback = /^[A-Za-z_$][0-9A-Za-z_$]*$/.test(callback) ? callback : "transactionCallback";
+  return ContentService
+    .createTextOutput(safeCallback + "(" + JSON.stringify(data) + ");")
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }
