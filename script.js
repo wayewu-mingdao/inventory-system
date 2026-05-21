@@ -645,45 +645,30 @@ async function handleTransactionSubmit(event) {
 
 function writeTransactionPayload(payload) {
     return new Promise((resolve, reject) => {
-        const iframeName = `transactionFrame${Date.now()}${Math.floor(Math.random() * 1000)}`;
-        const iframe = document.createElement('iframe');
-        const form = document.createElement('form');
-        const input = document.createElement('input');
+        const image = new Image();
+        const url = `${API_URL}?payload=${encodeURIComponent(JSON.stringify(payload))}&t=${Date.now()}`;
         const timeout = window.setTimeout(() => {
             cleanup();
             resolve();
-        }, 4000);
+        }, 5000);
 
         function cleanup() {
             window.clearTimeout(timeout);
-            iframe.onload = null;
-            if (form.parentNode) form.parentNode.removeChild(form);
-            window.setTimeout(() => {
-                if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
-            }, 0);
+            image.onload = null;
+            image.onerror = null;
         }
 
-        iframe.name = iframeName;
-        iframe.style.display = 'none';
-        iframe.onload = () => {
+        image.onload = () => {
+            cleanup();
+            resolve();
+        };
+        image.onerror = () => {
             cleanup();
             resolve();
         };
 
-        form.method = 'POST';
-        form.action = API_URL;
-        form.target = iframeName;
-        form.style.display = 'none';
-
-        input.type = 'hidden';
-        input.name = 'payload';
-        input.value = JSON.stringify(payload);
-        form.appendChild(input);
-
         try {
-            document.body.appendChild(iframe);
-            document.body.appendChild(form);
-            form.submit();
+            image.src = url;
         } catch (error) {
             cleanup();
             reject(error);
