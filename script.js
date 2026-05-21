@@ -672,7 +672,7 @@ function writeTransactionPayload(payload) {
             reject(new Error('無法連線到 Google Apps Script'));
         };
 
-        script.src = `${API_URL}?callback=${encodeURIComponent(callbackName)}&payload=${encodeURIComponent(JSON.stringify(payload))}&t=${Date.now()}`;
+        script.src = `https://script.google.com/macros/s/AKfycbyohRUonPSdTW8c8yG9_HJEv-G8s_Nz7GXSOCoPV13N_f4Jqka7m0AhHRsTqZVUxotQ/exec?callback=${encodeURIComponent(callbackName)}&payload=${encodeURIComponent(JSON.stringify(payload))}&t=${Date.now()}`;
         document.body.appendChild(script);
     });
 }
