@@ -6,8 +6,8 @@
  * - 入庫紀錄: existing sheet, row 3 is the header row.
  * - 出庫紀錄: existing sheet, row 3 is the header row.
  *
- * The script writes to a fixed spreadsheet, creates the transaction sheets when
- * needed, and writes to the first truly empty transaction row.
+ * The script writes to a fixed spreadsheet and appends to the first truly empty
+ * transaction row without rebuilding existing sheet headers or formatting.
  */
 
 const SPREADSHEET_ID = "1FlZxmYeq8unPHcsQe928bwjb9DfzYt5FrhmNXhe9Hn8";
@@ -19,8 +19,6 @@ function doGet(e) {
       const result = saveTransactionPayload_(JSON.parse(e.parameter.payload || "{}"));
       return callback ? callbackOutput_(callback, result) : jsonOutput_(result);
     }
-
-    ensureTransactionSheets_();
 
     const sheet = getSpreadsheet_().getSheetByName("耗材主資料");
 
@@ -71,7 +69,6 @@ function doPost(e) {
 
 function saveTransactionPayload_(payload) {
   const spreadsheet = getSpreadsheet_();
-  ensureTransactionSheets_();
   const inventoryItem = findInventoryItem_(spreadsheet, payload);
   const logSheetName = getTransactionLogSheetName_(payload);
   const logSheet = spreadsheet.getSheetByName(logSheetName);
@@ -101,48 +98,6 @@ function getTransactionLogSheetName_(payload) {
 
 function getSpreadsheet_() {
   return SpreadsheetApp.openById(SPREADSHEET_ID);
-}
-
-function ensureTransactionSheets_() {
-  const spreadsheet = getSpreadsheet_();
-  ensureTransactionSheet_(spreadsheet, "入庫紀錄", "入庫紀錄｜採購、補貨、盤點調整入庫");
-  ensureTransactionSheet_(spreadsheet, "出庫紀錄", "出庫紀錄｜領用、報廢、盤點調整出庫");
-}
-
-function ensureTransactionSheet_(spreadsheet, sheetName, title) {
-  const headers = [
-    "日期",
-    "耗材編號",
-    "耗材名稱",
-    "類別",
-    "數量",
-    "單位",
-    "館室",
-    sheetName === "出庫紀錄" ? "領用人" : "供應商",
-    "經手人",
-    "備註"
-  ];
-
-  let sheet = spreadsheet.getSheetByName(sheetName);
-  if (!sheet) {
-    sheet = spreadsheet.insertSheet(sheetName);
-  }
-
-  if (sheet.getMaxColumns() < headers.length) {
-    sheet.insertColumnsAfter(sheet.getMaxColumns(), headers.length - sheet.getMaxColumns());
-  }
-
-  const currentTitle = String(sheet.getRange(1, 1).getValue() || "").trim();
-  if (!currentTitle) {
-    sheet.getRange(1, 1, 1, headers.length).merge();
-    sheet.getRange(1, 1).setValue(title);
-  }
-
-  const existingHeaders = sheet.getRange(3, 1, 1, headers.length).getValues()[0];
-  const shouldWriteHeaders = headers.some((header, index) => String(existingHeaders[index] || "").trim() !== header);
-  if (shouldWriteHeaders) {
-    sheet.getRange(3, 1, 1, headers.length).setValues([headers]);
-  }
 }
 
 function findInventoryItem_(spreadsheet, payload) {
@@ -179,10 +134,28 @@ function appendRecordByHeaders_(sheet, payload, inventoryItem) {
   const headers = sheet.getRange(headerRow, 1, 1, lastColumn).getValues()[0];
   const nextRow = findFirstEmptyRecordRow_(sheet, headers, headerRow);
   const values = headers.map(header => getValueForHeader_(header, payload, inventoryItem));
+  const targetRange = sheet.getRange(nextRow, 1, 1, values.length);
 
-  sheet.getRange(nextRow, 1, 1, values.length)
-    .clearDataValidations()
-    .setValues([values]);
+  try {
+    targetRange.setValues([values]);
+  } catch (error) {
+    if (!String(error.message || "").includes("資料驗證")) {
+      throw error;
+    }
+
+    allowInvalidDataForExistingValidations_(targetRange);
+    targetRange.setValues([values]);
+  }
+}
+
+function allowInvalidDataForExistingValidations_(range) {
+  const validations = range.getDataValidations();
+  const softenedValidations = validations.map(row => row.map(rule => {
+    if (!rule) return null;
+    return rule.copy().setAllowInvalid(true).build();
+  }));
+
+  range.setDataValidations(softenedValidations);
 }
 
 function findFirstEmptyRecordRow_(sheet, headers, headerRow) {
