@@ -6,9 +6,11 @@
  * - 入庫紀錄: existing sheet, row 3 is the header row.
  * - 出庫紀錄: existing sheet, row 3 is the header row.
  *
- * The script only appends transaction records. It does not create sheets and
- * does not directly update 耗材主資料, so your sheet formulas can summarize stock.
+ * The script writes to a fixed spreadsheet, creates the transaction sheets when
+ * needed, and writes to the first truly empty transaction row.
  */
+
+const SPREADSHEET_ID = "1FlZxmYeq8unPHcsQe928bwjb9DfzYt5FrhmNXhe9Hn8";
 
 function doGet(e) {
   try {
@@ -18,9 +20,9 @@ function doGet(e) {
       return callback ? callbackOutput_(callback, result) : jsonOutput_(result);
     }
 
-    const sheet = SpreadsheetApp
-      .getActiveSpreadsheet()
-      .getSheetByName("耗材主資料");
+    ensureTransactionSheets_();
+
+    const sheet = getSpreadsheet_().getSheetByName("耗材主資料");
 
     const data = sheet.getDataRange().getValues();
 
@@ -68,7 +70,8 @@ function doPost(e) {
 }
 
 function saveTransactionPayload_(payload) {
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  const spreadsheet = getSpreadsheet_();
+  ensureTransactionSheets_();
   const inventoryItem = findInventoryItem_(spreadsheet, payload);
   const logSheetName = getTransactionLogSheetName_(payload);
   const logSheet = spreadsheet.getSheetByName(logSheetName);
@@ -94,6 +97,52 @@ function getTransactionLogSheetName_(payload) {
   }
 
   return "入庫紀錄";
+}
+
+function getSpreadsheet_() {
+  return SpreadsheetApp.openById(SPREADSHEET_ID);
+}
+
+function ensureTransactionSheets_() {
+  const spreadsheet = getSpreadsheet_();
+  ensureTransactionSheet_(spreadsheet, "入庫紀錄", "入庫紀錄｜採購、補貨、盤點調整入庫");
+  ensureTransactionSheet_(spreadsheet, "出庫紀錄", "出庫紀錄｜領用、報廢、盤點調整出庫");
+}
+
+function ensureTransactionSheet_(spreadsheet, sheetName, title) {
+  const headers = [
+    "日期",
+    "耗材編號",
+    "耗材名稱",
+    "類別",
+    "數量",
+    "單位",
+    "館室",
+    sheetName === "出庫紀錄" ? "領用人" : "供應商",
+    "經手人",
+    "備註"
+  ];
+
+  let sheet = spreadsheet.getSheetByName(sheetName);
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet(sheetName);
+  }
+
+  if (sheet.getMaxColumns() < headers.length) {
+    sheet.insertColumnsAfter(sheet.getMaxColumns(), headers.length - sheet.getMaxColumns());
+  }
+
+  const currentTitle = String(sheet.getRange(1, 1).getValue() || "").trim();
+  if (!currentTitle) {
+    sheet.getRange(1, 1, 1, headers.length).merge();
+    sheet.getRange(1, 1).setValue(title);
+  }
+
+  const existingHeaders = sheet.getRange(3, 1, 1, headers.length).getValues()[0];
+  const shouldWriteHeaders = headers.some((header, index) => String(existingHeaders[index] || "").trim() !== header);
+  if (shouldWriteHeaders) {
+    sheet.getRange(3, 1, 1, headers.length).setValues([headers]);
+  }
 }
 
 function findInventoryItem_(spreadsheet, payload) {
@@ -128,10 +177,37 @@ function appendRecordByHeaders_(sheet, payload, inventoryItem) {
   const headerRow = 3;
   const lastColumn = Math.max(sheet.getLastColumn(), 1);
   const headers = sheet.getRange(headerRow, 1, 1, lastColumn).getValues()[0];
-  const nextRow = Math.max(sheet.getLastRow() + 1, headerRow + 1);
+  const nextRow = findFirstEmptyRecordRow_(sheet, headers, headerRow);
   const values = headers.map(header => getValueForHeader_(header, payload, inventoryItem));
 
-  sheet.getRange(nextRow, 1, 1, values.length).setValues([values]);
+  sheet.getRange(nextRow, 1, 1, values.length)
+    .clearDataValidations()
+    .setValues([values]);
+}
+
+function findFirstEmptyRecordRow_(sheet, headers, headerRow) {
+  const firstDataRow = headerRow + 1;
+  const maxRows = Math.max(sheet.getMaxRows(), firstDataRow);
+  const keyColumns = ["日期", "耗材編號", "數量", "館室"]
+    .map(header => headers.indexOf(header))
+    .filter(index => index >= 0);
+
+  if (keyColumns.length === 0) {
+    return Math.max(sheet.getLastRow() + 1, firstDataRow);
+  }
+
+  const rowCount = maxRows - headerRow;
+  const values = sheet.getRange(firstDataRow, 1, rowCount, headers.length).getDisplayValues();
+
+  for (let rowIndex = 0; rowIndex < values.length; rowIndex++) {
+    const isEmpty = keyColumns.every(columnIndex => String(values[rowIndex][columnIndex] || "").trim() === "");
+    if (isEmpty) {
+      return firstDataRow + rowIndex;
+    }
+  }
+
+  sheet.insertRowsAfter(maxRows, 20);
+  return maxRows + 1;
 }
 
 function getValueForHeader_(header, payload, inventoryItem) {
