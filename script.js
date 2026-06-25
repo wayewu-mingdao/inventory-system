@@ -789,10 +789,10 @@ function renderRoomShortages(data) {
             const room = item['館室'] || '未分類';
 
             if (!grouped[room]) {
-                grouped[room] = [];
+                grouped[room] = new Set();
             }
 
-            grouped[room].push(item['耗材名稱']);
+            grouped[room].add(item['耗材名稱'] || '-');
         }
     });
 
@@ -809,9 +809,9 @@ function renderRoomShortages(data) {
         const tags = document.createElement('div');
         tags.className = 'shortage-tags';
 
-        grouped[room].forEach(name => {
+        Array.from(grouped[room]).forEach(name => {
             const tag = document.createElement('span');
-            tag.textContent = name || '-';
+            tag.textContent = name;
             tags.appendChild(tag);
         });
 
