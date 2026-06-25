@@ -703,7 +703,10 @@ function renderAllCategoryChart(data) {
     }));
 
     allCategoryChart.setOption({
-        tooltip: { trigger: 'item' },
+        tooltip: {
+            trigger: 'item',
+            position: getChartTooltipPosition
+        },
         legend: {
             orient: 'vertical',
             right: 10,
@@ -770,7 +773,10 @@ function renderShortageCategoryChart(data) {
     }));
 
     shortageCategoryChart.setOption({
-        tooltip: { trigger: 'item' },
+        tooltip: {
+            trigger: 'item',
+            position: getChartTooltipPosition
+        },
         legend: {
             orient: 'vertical',
             right: 10,
@@ -807,6 +813,13 @@ function renderShortageCategoryChart(data) {
             data: chartData
         }]
     });
+}
+
+function getChartTooltipPosition(point, params, dom, rect, size) {
+    return [
+        size.viewSize[0] - size.contentSize[0] - 12,
+        size.viewSize[1] - size.contentSize[1] - 12
+    ];
 }
 
 function renderRoomShortages(data) {
