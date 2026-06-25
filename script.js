@@ -714,12 +714,28 @@ function renderAllCategoryChart(data) {
             name: '所有耗材比例',
             type: 'pie',
             radius: ['40%', '70%'],
+            minShowLabelAngle: 8,
+            avoidLabelOverlap: true,
             itemStyle: {
                 borderRadius: 8,
                 borderColor: '#111827',
                 borderWidth: 2
             },
-            label: { color: '#e2e8f0' },
+            label: {
+                color: '#e2e8f0',
+                alignTo: 'edge',
+                edgeDistance: 8,
+                overflow: 'truncate',
+                width: 80
+            },
+            labelLine: {
+                length: 12,
+                length2: 8
+            },
+            labelLayout: {
+                hideOverlap: true,
+                moveOverlap: 'shiftY'
+            },
             data: chartData
         }]
     });
@@ -764,12 +780,28 @@ function renderShortageCategoryChart(data) {
             name: '缺料比例',
             type: 'pie',
             radius: ['40%', '70%'],
+            minShowLabelAngle: 8,
+            avoidLabelOverlap: true,
             itemStyle: {
                 borderRadius: 8,
                 borderColor: '#111827',
                 borderWidth: 2
             },
-            label: { color: '#e2e8f0' },
+            label: {
+                color: '#e2e8f0',
+                alignTo: 'edge',
+                edgeDistance: 8,
+                overflow: 'truncate',
+                width: 80
+            },
+            labelLine: {
+                length: 12,
+                length2: 8
+            },
+            labelLayout: {
+                hideOverlap: true,
+                moveOverlap: 'shiftY'
+            },
             data: chartData
         }]
     });
