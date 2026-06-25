@@ -707,14 +707,14 @@ function renderAllCategoryChart(data) {
         legend: {
             orient: 'vertical',
             right: 10,
-            bottom: 8,
+            top: 'center',
             textStyle: { color: '#94a3b8' }
         },
         series: [{
             name: '所有耗材比例',
             type: 'pie',
             radius: ['40%', '70%'],
-            center: ['42%', '58%'],
+            center: ['50%', '58%'],
             minShowLabelAngle: 8,
             avoidLabelOverlap: true,
             itemStyle: {
@@ -774,14 +774,14 @@ function renderShortageCategoryChart(data) {
         legend: {
             orient: 'vertical',
             right: 10,
-            bottom: 8,
+            top: 'center',
             textStyle: { color: '#94a3b8' }
         },
         series: [{
             name: '缺料比例',
             type: 'pie',
             radius: ['40%', '70%'],
-            center: ['42%', '58%'],
+            center: ['50%', '58%'],
             minShowLabelAngle: 8,
             avoidLabelOverlap: true,
             itemStyle: {
