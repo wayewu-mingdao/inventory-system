@@ -717,7 +717,7 @@ function renderAllCategoryChart(data) {
             name: '所有耗材比例',
             type: 'pie',
             radius: ['40%', '70%'],
-            center: ['43%', '50%'],
+            center: ['50%', '50%'],
             minShowLabelAngle: 8,
             avoidLabelOverlap: true,
             itemStyle: {
@@ -787,7 +787,7 @@ function renderShortageCategoryChart(data) {
             name: '缺料比例',
             type: 'pie',
             radius: ['40%', '70%'],
-            center: ['43%', '50%'],
+            center: ['50%', '50%'],
             minShowLabelAngle: 8,
             avoidLabelOverlap: true,
             itemStyle: {
