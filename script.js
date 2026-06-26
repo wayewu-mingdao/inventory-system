@@ -726,9 +726,7 @@ function renderAllCategoryChart(data) {
                 borderWidth: 2
             },
             label: {
-                color: '#e2e8f0',
-                overflow: 'truncate',
-                width: 80
+                show: false
             },
             labelLine: {
                 show: false
@@ -793,9 +791,7 @@ function renderShortageCategoryChart(data) {
                 borderWidth: 2
             },
             label: {
-                color: '#e2e8f0',
-                overflow: 'truncate',
-                width: 80
+                show: false
             },
             labelLine: {
                 show: false
