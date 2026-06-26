@@ -727,14 +727,11 @@ function renderAllCategoryChart(data) {
             },
             label: {
                 color: '#e2e8f0',
-                alignTo: 'labelLine',
-                distanceToLabelLine: 8,
                 overflow: 'truncate',
                 width: 80
             },
             labelLine: {
-                length: 12,
-                length2: 14
+                show: false
             },
             labelLayout: {
                 hideOverlap: true,
@@ -797,14 +794,11 @@ function renderShortageCategoryChart(data) {
             },
             label: {
                 color: '#e2e8f0',
-                alignTo: 'labelLine',
-                distanceToLabelLine: 8,
                 overflow: 'truncate',
                 width: 80
             },
             labelLine: {
-                length: 12,
-                length2: 14
+                show: false
             },
             labelLayout: {
                 hideOverlap: true,
