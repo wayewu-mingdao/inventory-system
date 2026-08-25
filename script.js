@@ -36,8 +36,9 @@ function initDashboard() {
 
             const data = Array.isArray(result) ? result : result.data;
             if (data && Array.isArray(data)) {
-                saveInventoryCache(data);
-                renderInventoryData(data);
+                const normalizedData = normalizeInventoryData(data);
+                saveInventoryCache(normalizedData);
+                renderInventoryData(normalizedData);
             }
         })
         .catch(error => {
@@ -50,7 +51,7 @@ function initDashboard() {
 
 function renderInventoryData(data) {
     const tbody = document.getElementById('inventory-table-body');
-    const validData = data.filter(item => item['耗材編號'] && item['耗材編號'].toString().trim() !== '');
+    const validData = normalizeInventoryData(data).filter(item => item['耗材編號'] && item['耗材編號'].toString().trim() !== '');
     inventoryData = validData;
     if (tbody) tbody.textContent = '';
 
@@ -110,6 +111,37 @@ function renderInventoryData(data) {
     renderRoomShortages(validData);
     renderMaterialsPage();
     renderTransactionPage();
+}
+
+function normalizeInventoryData(data) {
+    return data.map(item => {
+        if (!item || typeof item !== 'object' || item['耗材編號']) {
+            return item;
+        }
+
+        const code = item['SAF-GOG-001'];
+        if (!code) {
+            return item;
+        }
+
+        const status = (item['足夠'] || '足夠').toString().trim();
+        const safeStock = Number(item['10'] || 0);
+        const currentStock = status === '缺貨' ? 0 : safeStock;
+
+        return {
+            ...item,
+            '耗材編號': code,
+            '耗材名稱': item['護目鏡'] || '',
+            '類別': item['個人防護用品'] || '未分類',
+            '規格/型號': item['透明防霧'] || '',
+            '單位': item['副'] || '',
+            '館室': item['Future Lab'] || '',
+            '安全庫存量': safeStock,
+            '目前庫存量': currentStock,
+            '庫存狀態': status,
+            '備註': item[''] || ''
+        };
+    });
 }
 
 function appendCell(row, value, className) {
